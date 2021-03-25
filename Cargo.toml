@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "hwal",
+    "rsrt",
+    "build_tools",
+    "platform/*",
+    "platform/*/*_tests"
+]

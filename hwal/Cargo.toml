@@ -1,0 +1,16 @@
+[package]
+name = "hwal"
+version = "0.1.0"
+authors = ["shady831213 <shady831213@126.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+riscv = { version = "0.6", features = ["inline-asm"] }
+rsrt = { path = "../rsrt"}
+lazy_static = { version = "1", features = ["spin_no_std"] }
+mailbox_rs = { git = "https://github.com/shady831213/mailbox_rs" , features = ["no_std", "ptr32"], optional = true}
+
+[features]
+default=["mailbox_rs"]

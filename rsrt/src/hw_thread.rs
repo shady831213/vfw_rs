@@ -1,9 +1,20 @@
 use crate::arch::*;
 use crate::ipi::*;
 use crate::sys::num_cores;
-use alloc::vec;
-use alloc::vec::Vec;
 use spin::Mutex;
+#[cfg(feature = "max_cores_4")]
+const MAX_CORES: usize = 4;
+#[cfg(feature = "max_cores_8")]
+const MAX_CORES: usize = 8;
+#[cfg(feature = "max_cores_16")]
+const MAX_CORES: usize = 16;
+#[cfg(feature = "max_cores_32")]
+const MAX_CORES: usize = 32;
+#[cfg(feature = "max_cores_64")]
+const MAX_CORES: usize = 64;
+#[cfg(feature = "max_cores_128")]
+const MAX_CORES: usize = 128;
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Task {
@@ -11,15 +22,8 @@ pub struct Task {
     pub args: [usize; 8],
 }
 
-lazy_static::lazy_static! {
-    static ref CPUS: Vec<Mutex<Option<Task>>> = {
-        let mut cpus = vec![];
-        for _ in 0 ..num_cores(){
-            cpus.push(Mutex::new(Option::<Task>::None));
-        }
-        cpus
-    };
-}
+static CPUS: [Mutex<Option<Task>>; MAX_CORES] =
+    [const { Mutex::new(Option::<Task>::None) }; MAX_CORES];
 
 fn schedule(hartid: usize) {
     send_others_ipis(hartid, 0xffffffff)

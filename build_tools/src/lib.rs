@@ -57,19 +57,27 @@ pub fn build_c_files<'a>(
 }
 
 pub fn tests_build(out_dir: &Path, toolchain_prefix: &str) {
+    tests_build_with(out_dir, toolchain_prefix, |b| {b})
+}
+
+pub fn tests_build_with<F: FnMut(&mut cc::Build)->&mut cc::Build>(
+    out_dir: &Path,
+    toolchain_prefix: &str,
+    mut f: F,
+) {
     println!("cargo:rerun-if-env-changed=TESTNAME");
     let test_name = env::var("TESTNAME").unwrap();
     let test_dir = Path::new("src/bin").join(&test_name);
     let mut c_build = cc::Build::new();
     if let Some(build) = build_c_files(&test_dir, &mut c_build).unwrap() {
-        build
+        let b = build
             .compiler(format!("{}gcc", toolchain_prefix))
             .archiver(format!("{}ar", toolchain_prefix))
             .out_dir(out_dir)
             .flag("-Wno-main")
             .flag("-Wno-strict-aliasing")
-            .flag("-Wno-builtin-declaration-mismatch")
-            .compile(&test_name);
+            .flag("-Wno-builtin-declaration-mismatch");
+        f(b).compile(&test_name);
     }
 }
 

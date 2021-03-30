@@ -13,4 +13,11 @@ lazy_static = { version = "1", features = ["spin_no_std"] }
 mailbox_rs = { git = "https://github.com/shady831213/mailbox_rs" , features = ["no_std", "ptr32"], optional = true}
 
 [features]
-default=["mailbox_rs"]
+default=["mailbox_rs", "full_panic", "max_cores_4"]
+full_panic=["rsrt/full_panic"]
+max_cores_4 = ["rsrt/max_cores_4"]
+max_cores_8 = ["rsrt/max_cores_8"]
+max_cores_16 = ["rsrt/max_cores_16"]
+max_cores_32 = ["rsrt/max_cores_32"]
+max_cores_64 = ["rsrt/max_cores_64"]
+max_cores_128 = ["rsrt/max_cores_128"]

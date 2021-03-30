@@ -1,5 +1,7 @@
 use crate::arch::rv::riscv;
 use riscv::register::mcause;
+#[cfg(all(not(feature = "full_panic"), feature = "mailbox_rs"))]
+use crate::cprintln;
 #[derive(Debug)]
 #[repr(C)]
 pub struct TrapFrame {
@@ -43,7 +45,11 @@ impl TrapFrame {
             29 => self.t4 = value,
             30 => self.t5 = value,
             31 => self.t6 = value,
-            _ => panic!("invalid target{}", dst),
+            _ => {
+                #[cfg(all(not(feature = "full_panic"), feature = "mailbox_rs"))]
+                cprintln!("invalid target %d", &[dst as u32]);
+                panic!("invalid target {}", dst)
+            }
         }
     }
 }
@@ -92,6 +98,7 @@ impl ExceptionVector {
 }
 
 pub fn default_trap_handler() {
-    let cause = mcause::read().cause();
-    panic!("Unexpected trap: cause:{:#x?}", cause);
+    #[cfg(all(not(feature = "full_panic"), feature = "mailbox_rs"))]
+    cprintln!("Unexpected trap: cause:%x", &[mcause::read().bits() as u32]);
+    panic!("Unexpected trap: cause:{:#x?}", mcause::read().cause());
 }

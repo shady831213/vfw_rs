@@ -10,3 +10,12 @@ edition = "2018"
 spin = "0.7"
 buddy_system_allocator = "0.7"
 lazy_static = { version = "1", features = ["spin_no_std"] }
+
+[features]
+full_panic = []
+max_cores_4 = []
+max_cores_8 = []
+max_cores_16 = []
+max_cores_32 = []
+max_cores_64 = []
+max_cores_128 = []

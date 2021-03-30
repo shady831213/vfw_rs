@@ -38,6 +38,70 @@ extern "C" fn mailbox_cprint(
     mb_cprint(&MB_SENDER, fmt, file, line, arg_len, args)
 }
 
+#[macro_export]
+macro_rules! cprint {
+    ($fmt:expr) => {
+        extern "C" {
+            fn cprint(fmt: *const u8, file: *const u8, line: u32, arg_len: u32, args: *const u32);
+        }
+        unsafe {
+            cprint(
+                core::concat!($fmt, "\0").as_bytes().as_ptr(),
+                core::concat!(file!(), "\0").as_bytes().as_ptr(),
+                line!(),
+                0,
+                &[0] as *const u32,
+            );
+        }
+    };
+    ($fmt:expr, $args:expr) => {
+        extern "C" {
+            fn cprint(fmt: *const u8, file: *const u8, line: u32, arg_len: u32, args: *const u32);
+        }
+        unsafe {
+            cprint(
+                core::concat!($fmt, "\0").as_bytes().as_ptr(),
+                core::concat!(file!(), "\0").as_bytes().as_ptr(),
+                line!(),
+                $args.len() as u32,
+                $args as *const u32,
+            );
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! cprintln {
+    ($fmt:expr) => {
+        extern "C" {
+            fn cprint(fmt: *const u8, file: *const u8, line: u32, arg_len: u32, args: *const u32);
+        }
+        unsafe {
+            cprint(
+                core::concat!($fmt, "\n\0").as_bytes().as_ptr(),
+                core::concat!(file!(), "\0").as_bytes().as_ptr(),
+                line!(),
+                0,
+                &[0] as *const u32,
+            );
+        }
+    };
+    ($fmt:expr, $args:expr) => {
+        extern "C" {
+            fn cprint(fmt: *const u8, file: *const u8, line: u32, arg_len: u32, args: *const u32);
+        }
+        unsafe {
+            cprint(
+                core::concat!($fmt, "\n\0").as_bytes().as_ptr(),
+                core::concat!(file!(), "\0").as_bytes().as_ptr(),
+                line!(),
+                $args.len() as u32,
+                $args as *const u32,
+            );
+        }
+    };
+}
+
 pub fn mailbox_print_str(s: &str) {
     use fmt::Write;
     MBPrinter.write_str(s).unwrap();

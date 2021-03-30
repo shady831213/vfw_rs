@@ -55,7 +55,9 @@ macro_rules! println {
 }
 
 #[panic_handler]
+#[allow(unused_variables)]
 fn panic(info: &PanicInfo) -> ! {
+    #[cfg(feature = "full_panic")]
     println!("{}", info);
     exit(1)
 }
@@ -169,7 +171,10 @@ fn rsrt_start() {
     extern "C" {
         fn __boot_core_init();
     }
-
+    extern "C" {
+        fn __pre_init();
+    }
+    unsafe { __pre_init() };
     let hartid = hartid();
     if hartid == 0 {
         init_heap();

@@ -59,8 +59,6 @@ pub fn idle() {
     }
 }
 
-pub static EMPTY_ARGS: [usize; 0] = [0; 0];
-
 #[no_mangle]
 extern "C" fn c_fork(entry: usize, args_len: usize, args: *const usize) -> usize {
     let hartid = hartid();
@@ -118,10 +116,22 @@ extern "C" fn c_try_fork_on(
     -1
 }
 
-pub fn fork(entry: usize, args: &[usize]) -> usize {
+#[macro_export]
+macro_rules! fork {
+    ($entry:ident) => {{
+        let args:[usize;0] = [0;0];
+        crate::_fork($entry as usize, &args)
+    }};
+    ($entry:ident, $($arg:expr),*) => {{
+        let args = [$($arg as usize,)*];
+        crate::_fork($entry as usize, &args)
+    }};
+}
+
+pub fn _fork(entry: usize, args: &[usize]) -> usize {
     let hartid = hartid();
     loop {
-        if let Ok(id) = try_fork(entry, args) {
+        if let Ok(id) = _try_fork(entry, args) {
             return id;
         } else {
             // let flag = save_flag();
@@ -131,10 +141,22 @@ pub fn fork(entry: usize, args: &[usize]) -> usize {
     }
 }
 
-pub fn fork_on(target_id: usize, entry: usize, args: &[usize]) -> usize {
+#[macro_export]
+macro_rules! fork_on {
+    ($target:expr, $entry:ident) => {{
+        let args:[usize;0] = [0;0];
+        crate::_fork_on($target as usize, $entry as usize, &args)
+    }};
+    ($target:expr, $entry:ident, $($arg:expr),*) => {{
+        let args = [$($arg as usize,)*];
+        crate::_fork_on($target as usize, $entry as usize, &args)
+    }};
+}
+
+pub fn _fork_on(target_id: usize, entry: usize, args: &[usize]) -> usize {
     let hartid = hartid();
     loop {
-        if let Ok(id) = try_fork_on(target_id, entry, args) {
+        if let Ok(id) = _try_fork_on(target_id, entry, args) {
             return id;
         } else {
             // let flag = save_flag();
@@ -144,16 +166,40 @@ pub fn fork_on(target_id: usize, entry: usize, args: &[usize]) -> usize {
     }
 }
 
-pub fn try_fork(entry: usize, args: &[usize]) -> Result<usize, &'static str> {
+#[macro_export]
+macro_rules! try_fork {
+    ($entry:ident) => {{
+        let args:[usize;0] = [0;0];
+        crate::_try_fork($entry as usize, &args)
+    }};
+    ($entry:ident, $($arg:expr),*) => {{
+        let args = [$($arg as usize,)*];
+        crate::_try_fork($entry as usize, &args)
+    }};
+}
+
+pub fn _try_fork(entry: usize, args: &[usize]) -> Result<usize, &'static str> {
     for i in 1..num_cores() as usize {
-        if let Ok(id) = try_fork_on(i, entry, args) {
+        if let Ok(id) = _try_fork_on(i, entry, args) {
             return Ok(id);
         }
     }
     Err("All cores are busy!")
 }
 
-pub fn try_fork_on(target_id: usize, entry: usize, args: &[usize]) -> Result<usize, &'static str> {
+#[macro_export]
+macro_rules! try_fork_on {
+    ($target:expr, $entry:ident) => {{
+        let args:[usize;0] = [0;0];
+        crate::_try_fork_on($target as usize, $entry as usize, &args)
+    }};
+    ($target:expr, $entry:ident, $($arg:expr),*) => {{
+        let args = [$($arg as usize,)*];
+        crate::_try_fork_on($target as usize, $entry as usize, &args)
+    }};
+}
+
+pub fn _try_fork_on(target_id: usize, entry: usize, args: &[usize]) -> Result<usize, &'static str> {
     __try_fork_on(target_id, entry, args.len(), args.as_ptr())
 }
 

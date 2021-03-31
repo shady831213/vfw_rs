@@ -44,27 +44,29 @@ macro_rules! cprint {
         extern "C" {
             fn cprint(fmt: *const u8, file: *const u8, line: u32, arg_len: u32, args: *const u32);
         }
+        let args:[u32;0] = [0;0];
         unsafe {
             cprint(
                 core::concat!($fmt, "\0").as_bytes().as_ptr(),
                 core::concat!(file!(), "\0").as_bytes().as_ptr(),
                 line!(),
                 0,
-                &[0] as *const u32,
+                args.as_ptr(),
             );
         }
     };
-    ($fmt:expr, $args:expr) => {
+    ($fmt:expr, $($arg:expr),*) => {
         extern "C" {
             fn cprint(fmt: *const u8, file: *const u8, line: u32, arg_len: u32, args: *const u32);
         }
+        let args = [$($arg as u32,)*];
         unsafe {
             cprint(
                 core::concat!($fmt, "\0").as_bytes().as_ptr(),
                 core::concat!(file!(), "\0").as_bytes().as_ptr(),
                 line!(),
-                $args.len() as u32,
-                $args as *const u32,
+                args.len() as u32,
+                args.as_ptr(),
             );
         }
     };
@@ -72,34 +74,8 @@ macro_rules! cprint {
 
 #[macro_export]
 macro_rules! cprintln {
-    ($fmt:expr) => {
-        extern "C" {
-            fn cprint(fmt: *const u8, file: *const u8, line: u32, arg_len: u32, args: *const u32);
-        }
-        unsafe {
-            cprint(
-                core::concat!($fmt, "\n\0").as_bytes().as_ptr(),
-                core::concat!(file!(), "\0").as_bytes().as_ptr(),
-                line!(),
-                0,
-                &[0] as *const u32,
-            );
-        }
-    };
-    ($fmt:expr, $args:expr) => {
-        extern "C" {
-            fn cprint(fmt: *const u8, file: *const u8, line: u32, arg_len: u32, args: *const u32);
-        }
-        unsafe {
-            cprint(
-                core::concat!($fmt, "\n\0").as_bytes().as_ptr(),
-                core::concat!(file!(), "\0").as_bytes().as_ptr(),
-                line!(),
-                $args.len() as u32,
-                $args as *const u32,
-            );
-        }
-    };
+    ($fmt:expr) => {crate::cprint!(core::concat!($fmt, "\n"))};
+    ($fmt:expr, $($arg:expr),*) => {crate::cprint!(core::concat!($fmt, "\n"), $($arg),*)};
 }
 
 pub fn mailbox_print_str(s: &str) {

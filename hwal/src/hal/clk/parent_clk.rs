@@ -29,6 +29,10 @@ impl<T: Clk> Clk for ParentClk<T> {
         }
         state.refs += 1;
     }
+    fn enabled(&self) -> bool {
+        let state = self.state.lock();
+        state.refs > 0 && self.inner.enabled()
+    }
     fn disable(&self) {
         let mut state = self.state.lock();
         state.refs -= 1;

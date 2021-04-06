@@ -23,6 +23,9 @@ impl<'a, T: Clk> Clk for ClkDiv<'a, T> {
         let state = self.state.lock();
         self.inner.calculate() * state.mul / state.div
     }
+    fn enabled(&self) -> bool {
+        self.inner.enabled()
+    }
     fn enable(&self) {
         self.inner.enable();
     }

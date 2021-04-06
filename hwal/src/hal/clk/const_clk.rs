@@ -12,5 +12,8 @@ impl Clk for ConstClk {
         self.freq
     }
     fn enable(&self) {}
+    fn enabled(&self) -> bool {
+        true
+    }
     fn disable(&self) {}
 }

@@ -5,6 +5,7 @@
 #![feature(alloc_error_handler)]
 #![allow(incomplete_features)]
 #![feature(inline_const)]
+#![feature(const_fn)]
 extern crate rsrt;
 pub mod arch;
 pub mod hal;

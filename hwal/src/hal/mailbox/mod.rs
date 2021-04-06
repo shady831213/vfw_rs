@@ -40,7 +40,7 @@ extern "C" fn mailbox_cprint(
 
 #[macro_export]
 macro_rules! cprint {
-    ($fmt:expr) => {
+    ($fmt:expr) => {{
         extern "C" {
             fn cprint(fmt: *const u8, file: *const u8, line: u32, arg_len: u32, args: *const u32);
         }
@@ -54,8 +54,8 @@ macro_rules! cprint {
                 args.as_ptr(),
             );
         }
-    };
-    ($fmt:expr, $($arg:expr),*) => {
+    }};
+    ($fmt:expr, $($arg:expr),*) => {{
         extern "C" {
             fn cprint(fmt: *const u8, file: *const u8, line: u32, arg_len: u32, args: *const u32);
         }
@@ -69,7 +69,7 @@ macro_rules! cprint {
                 args.as_ptr(),
             );
         }
-    };
+    }};
 }
 
 #[macro_export]

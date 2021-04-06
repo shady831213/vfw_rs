@@ -2,23 +2,23 @@ use super::Clk;
 use crate::spin::Mutex;
 use core::ops::Deref;
 
-struct ParentClkState {
+struct SharedClkState {
     refs: isize,
 }
 
-pub struct ParentClk<T: Clk> {
+pub struct SharedClk<T: Clk> {
     inner: T,
-    state: Mutex<ParentClkState>,
+    state: Mutex<SharedClkState>,
 }
-impl<T: Clk> ParentClk<T> {
-    pub const fn new(clk: T) -> ParentClk<T> {
-        ParentClk {
+impl<T: Clk> SharedClk<T> {
+    pub const fn new(clk: T) -> SharedClk<T> {
+        SharedClk {
             inner: clk,
-            state: Mutex::new(ParentClkState { refs: 0 }),
+            state: Mutex::new(SharedClkState { refs: 0 }),
         }
     }
 }
-impl<T: Clk> Clk for ParentClk<T> {
+impl<T: Clk> Clk for SharedClk<T> {
     fn calculate(&self) -> usize {
         self.inner.calculate()
     }
@@ -43,7 +43,7 @@ impl<T: Clk> Clk for ParentClk<T> {
     }
 }
 
-impl<T: Clk> Deref for ParentClk<T> {
+impl<T: Clk> Deref for SharedClk<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {

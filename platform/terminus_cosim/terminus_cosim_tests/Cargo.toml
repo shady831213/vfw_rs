@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 platform = { path = "..", package = "terminus_cosim"}
+compiler_builtins = { git = "https://github.com/rust-lang/compiler-builtins" }
 
 [build-dependencies]
 build_tools = {path = "../../../build_tools"}

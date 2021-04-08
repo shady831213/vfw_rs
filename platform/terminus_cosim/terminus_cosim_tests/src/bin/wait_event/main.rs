@@ -2,6 +2,7 @@
 #![no_main]
 #![feature(llvm_asm)]
 extern crate platform;
+extern crate compiler_builtins;
 use platform::*;
 mod wait_event;
 use wait_event::*;

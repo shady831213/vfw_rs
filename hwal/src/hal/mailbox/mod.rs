@@ -87,3 +87,17 @@ pub fn mailbox_exit(code: u32) -> ! {
     mb_exit(&MB_SENDER, code);
     loop {}
 }
+
+pub fn mailbox_memmove(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
+    mb_memmove(&MB_SENDER, dest as MBPtrT, src as MBPtrT, n as MBPtrT);
+    dest
+}
+
+pub fn mailbox_memset(dest: *mut u8, data: i32, n: usize) -> *mut u8 {
+    mb_memset(&MB_SENDER, dest as MBPtrT, data as MBPtrT, n as MBPtrT);
+    dest
+}
+
+pub fn mailbox_memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
+    mb_memcmp(&MB_SENDER, s1 as MBPtrT, s2 as MBPtrT, n as MBPtrT)
+}

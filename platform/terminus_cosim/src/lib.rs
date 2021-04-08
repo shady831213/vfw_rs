@@ -59,3 +59,27 @@ fn boot_core_init() {
     init_print_str(mailbox_print_str);
     set_arch_task_run(run_task);
 }
+
+#[no_mangle]
+#[cfg(feature = "mailbox_mem")]
+pub unsafe extern "C" fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
+    mailbox_memmove(dest, src, n)
+}
+
+#[no_mangle]
+#[cfg(feature = "mailbox_mem")]
+pub unsafe extern "C" fn memmove(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
+    mailbox_memmove(dest, src, n)
+}
+
+#[no_mangle]
+#[cfg(feature = "mailbox_mem")]
+pub unsafe extern "C" fn memset(dest: *mut u8, data: i32, n: usize) -> *mut u8 {
+    mailbox_memset(dest, data, n)
+}
+
+#[no_mangle]
+#[cfg(feature = "mailbox_mem")]
+pub unsafe extern "C" fn memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
+    mailbox_memcmp(s1, s2, n)
+}

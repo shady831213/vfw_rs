@@ -2,6 +2,7 @@
 #![no_main]
 #![feature(llvm_asm)]
 extern crate platform;
+extern crate compiler_builtins;
 use platform::*;
 use riscv::register::{mcause, mepc, mtvec::TrapMode};
 #[export_name = "main"]

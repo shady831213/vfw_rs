@@ -180,7 +180,6 @@ checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 name = "hwal"
 version = "0.1.0"
 dependencies = [
- "lazy_static",
  "mailbox_rs",
  "riscv",
  "rsrt",
@@ -229,7 +228,7 @@ dependencies = [
 [[package]]
 name = "mailbox_rs"
 version = "0.1.0"
-source = "git+https://github.com/shady831213/mailbox_rs#f13b82471a460c59d40bbd8649f70a87e9090e87"
+source = "git+https://github.com/shady831213/mailbox_rs#b51c6d22746b63b5617004bcca6bfe938c7b1f2d"
 dependencies = [
  "nb",
  "spin 0.7.1",

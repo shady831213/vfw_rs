@@ -15,5 +15,5 @@ impl MBRpc for WaitEvent {
 }
 
 pub fn mb_wait_event(event: u32) -> u32 {
-    (&MB_SENDER).send(&WaitEvent, event)
+    mb_sender().send(&WaitEvent, event)
 }

@@ -92,6 +92,21 @@ extern "C" fn mailbox_svcall(method: *const u8, arg_len: u32, args: *const u32) 
 
 #[macro_export]
 macro_rules! svcall {
+    ($method:expr) => {{
+        extern "C" {
+            fn mb_svcall(method: *const u8,
+                arg_len: u32,
+                args: *const u32) -> u32;
+        }
+        let args:[u32;0] = [0;0];
+        unsafe {
+            mb_svcall(
+                core::concat!($method, "\0").as_bytes().as_ptr(),
+                0,
+                args.as_ptr(),
+            )
+        }
+    }};
     ($method:expr, $($arg:expr),*) => {{
         extern "C" {
             fn mb_svcall(method: *const u8,

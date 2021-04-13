@@ -85,7 +85,7 @@ macro_rules! cprintln {
     ($fmt:expr, $($arg:expr),*) => {crate::cprint!(core::concat!($fmt, "\n"), $($arg),*)};
 }
 
-#[export_name = "svcall"]
+#[export_name = "mb_svcall"]
 extern "C" fn mailbox_svcall(method: *const u8, arg_len: u32, args: *const u32) -> u32 {
     mb_svcall(mb_sender(), method, arg_len, args as *const MBPtrT) as u32
 }
@@ -94,13 +94,13 @@ extern "C" fn mailbox_svcall(method: *const u8, arg_len: u32, args: *const u32) 
 macro_rules! svcall {
     ($method:expr, $($arg:expr),*) => {{
         extern "C" {
-            fn svcall(method: *const u8,
+            fn mb_svcall(method: *const u8,
                 arg_len: u32,
                 args: *const u32) -> u32;
         }
         let args = [$($arg as u32,)*];
         unsafe {
-            svcall(
+            mb_svcall(
                 core::concat!($method, "\0").as_bytes().as_ptr(),
                 args.len() as u32,
                 args.as_ptr(),

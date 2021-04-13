@@ -230,7 +230,7 @@ dependencies = [
 [[package]]
 name = "mailbox_rs"
 version = "0.1.0"
-source = "git+https://github.com/shady831213/mailbox_rs#cbda48babf601afa485b9ec7a5aa529eeafeba79"
+source = "git+https://github.com/shady831213/mailbox_rs#5de74773a98ef4667987882c67ddce13080e86f1"
 dependencies = [
  "nb",
  "spin 0.7.1",

@@ -1,7 +1,7 @@
 extern crate mailbox_rs;
 use crate::rsrt::*;
 use core::fmt;
-pub use mailbox_rs::{mb_channel::*, mb_no_std::*};
+pub use mailbox_rs::{mb_channel::*, mb_no_std::*, mb_rpcs::*};
 #[link_section = ".mailbox_queue"]
 static mut MB_CH_RAW: MBChannel = MBChannel::const_init();
 

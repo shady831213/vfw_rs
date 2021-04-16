@@ -9,7 +9,10 @@ extern "C" {
 #[export_name = "main"]
 fn file_access_test() -> u32 {
     {
-        let mut f = fs::open("test", fs::HWAL_FILE_WRITE | fs::HWAL_FILE_READ);
+        let mut f = fs::open(
+            "test",
+            fs::HWAL_FILE_WRITE | fs::HWAL_FILE_READ | fs::HWAL_FILE_TRUNC,
+        );
         f.write(b"file_access_test!\n");
         f.seek(0);
         let mut buf: [u8; 128] = [0; 128];

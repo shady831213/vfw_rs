@@ -34,7 +34,7 @@ impl fmt::Write for MBPrinter {
     }
 }
 
-#[export_name = "cprint"]
+#[no_mangle]
 extern "C" fn mailbox_cprint(
     fmt: *const u8,
     file: *const u8,
@@ -49,11 +49,11 @@ extern "C" fn mailbox_cprint(
 macro_rules! cprint {
     ($fmt:expr) => {{
         extern "C" {
-            fn cprint(fmt: *const u8, file: *const u8, line: u32, arg_len: u32, args: *const u32);
+            fn mailbox_cprint(fmt: *const u8, file: *const u8, line: u32, arg_len: u32, args: *const u32);
         }
         let args:[u32;0] = [0;0];
         unsafe {
-            cprint(
+            mailbox_cprint(
                 core::concat!($fmt, "\0").as_bytes().as_ptr(),
                 core::concat!(file!(), "\0").as_bytes().as_ptr(),
                 line!(),
@@ -64,11 +64,11 @@ macro_rules! cprint {
     }};
     ($fmt:expr, $($arg:expr),*) => {{
         extern "C" {
-            fn cprint(fmt: *const u8, file: *const u8, line: u32, arg_len: u32, args: *const u32);
+            fn mailbox_cprint(fmt: *const u8, file: *const u8, line: u32, arg_len: u32, args: *const u32);
         }
         let args = [$($arg as u32,)*];
         unsafe {
-            cprint(
+            mailbox_cprint(
                 core::concat!($fmt, "\0").as_bytes().as_ptr(),
                 core::concat!(file!(), "\0").as_bytes().as_ptr(),
                 line!(),
@@ -85,7 +85,7 @@ macro_rules! cprintln {
     ($fmt:expr, $($arg:expr),*) => {crate::cprint!(core::concat!($fmt, "\n"), $($arg),*)};
 }
 
-#[export_name = "mb_svcall"]
+#[no_mangle]
 extern "C" fn mailbox_svcall(method: *const u8, arg_len: u32, args: *const u32) -> u32 {
     mb_svcall(mb_sender(), method, arg_len, args as *const MBPtrT) as u32
 }
@@ -94,13 +94,13 @@ extern "C" fn mailbox_svcall(method: *const u8, arg_len: u32, args: *const u32) 
 macro_rules! svcall {
     ($method:expr) => {{
         extern "C" {
-            fn mb_svcall(method: *const u8,
+            fn mailbox_svcall(method: *const u8,
                 arg_len: u32,
                 args: *const u32) -> u32;
         }
         let args:[u32;0] = [0;0];
         unsafe {
-            mb_svcall(
+            mailbox_svcall(
                 core::concat!($method, "\0").as_bytes().as_ptr(),
                 0,
                 args.as_ptr(),
@@ -109,13 +109,13 @@ macro_rules! svcall {
     }};
     ($method:expr, $($arg:expr),*) => {{
         extern "C" {
-            fn mb_svcall(method: *const u8,
+            fn mailbox_svcall(method: *const u8,
                 arg_len: u32,
                 args: *const u32) -> u32;
         }
         let args = [$($arg as u32,)*];
         unsafe {
-            mb_svcall(
+            mailbox_svcall(
                 core::concat!($method, "\0").as_bytes().as_ptr(),
                 args.len() as u32,
                 args.as_ptr(),
@@ -146,4 +146,69 @@ pub fn mailbox_memset(dest: *mut u8, data: i32, n: usize) -> *mut u8 {
 
 pub fn mailbox_memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
     mb_memcmp(mb_sender(), s1 as MBPtrT, s2 as MBPtrT, n as MBPtrT)
+}
+
+#[no_mangle]
+extern "C" fn mailbox_fopen(path: *const u8, flags: u32) -> u32 {
+    mb_fopen(mb_sender(), path as MBPtrT, flags)
+}
+
+#[no_mangle]
+pub fn mailbox_fclose(fb: u32) {
+    mb_fclose(mb_sender(), fb)
+}
+
+#[no_mangle]
+extern "C" fn mailbox_fread(fb: u32, ptr: *mut u8, len: usize) -> usize {
+    mb_fread(mb_sender(), fb, ptr as MBPtrT, len as MBPtrT)
+}
+
+#[no_mangle]
+extern "C" fn mailbox_fwrite(fb: u32, ptr: *const u8, len: usize) -> usize {
+    mb_fwrite(mb_sender(), fb, ptr as MBPtrT, len as MBPtrT)
+}
+
+#[no_mangle]
+extern "C" fn mailbox_fseek(fb: u32, pos: MBPtrT) -> MBPtrT {
+    mb_fseek(mb_sender(), fb, pos)
+}
+
+pub mod fs {
+    extern crate alloc;
+    use super::{
+        mailbox_fclose, mailbox_fopen, mailbox_fread, mailbox_fseek, mailbox_fwrite, MBPtrT,
+        MB_FILE_APPEND, MB_FILE_READ, MB_FILE_TRUNC, MB_FILE_WRITE,
+    };
+    use alloc::string::ToString;
+    pub const HWAL_FILE_APPEND: u32 = MB_FILE_APPEND;
+    pub const HWAL_FILE_READ: u32 = MB_FILE_READ;
+    pub const HWAL_FILE_TRUNC: u32 = MB_FILE_TRUNC;
+    pub const HWAL_FILE_WRITE: u32 = MB_FILE_WRITE;
+    pub fn open(path: &str, flags: u32) -> File {
+        File {
+            fb: mailbox_fopen(
+                format_args!("{}\0", path).to_string().as_bytes().as_ptr(),
+                flags,
+            ),
+        }
+    }
+    pub struct File {
+        fb: u32,
+    }
+    impl File {
+        pub fn write(&mut self, buf: &[u8]) -> usize {
+            mailbox_fwrite(self.fb, buf.as_ptr(), buf.len())
+        }
+        pub fn read(&mut self, buf: &mut [u8]) -> usize {
+            mailbox_fread(self.fb, buf.as_mut_ptr(), buf.len())
+        }
+        pub fn seek(&mut self, pos: usize) -> usize {
+            mailbox_fseek(self.fb, pos as MBPtrT) as usize
+        }
+    }
+    impl Drop for File {
+        fn drop(&mut self) {
+            mailbox_fclose(self.fb)
+        }
+    }
 }

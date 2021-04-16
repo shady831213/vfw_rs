@@ -11,6 +11,7 @@ use hwal::arch::rv::rtapi::*;
 pub use hwal::arch::rv::standard::{init_trap, register_exception_handler, register_int_handler};
 pub use hwal::arch::rv::trap::*;
 use hwal::hal::clint::Clint;
+pub use hwal::hal::mailbox::fs;
 use hwal::hal::mailbox::*;
 pub use hwal::*;
 

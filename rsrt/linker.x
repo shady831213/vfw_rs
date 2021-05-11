@@ -27,6 +27,12 @@ SECTIONS
         _erodata = .;
     } > REGION_RODATA
 
+    .bss : {
+        _sbss = .;
+        *(.bss .bss.* .sbss .sbss.*)
+        _ebss = .;
+    } > REGION_BSS
+
     .data : {
         sidata = LOADADDR(.data);
         _sdata = .;
@@ -36,12 +42,6 @@ SECTIONS
         *(.data .data.*)
         _edata = .;
     } > REGION_DATA
-
-    .bss : {
-        _sbss = .;
-        *(.bss .bss.* .sbss .sbss.*)
-        _ebss = .;
-    } > REGION_BSS
 
     .heap (NOLOAD) : {
         _sheap = .;

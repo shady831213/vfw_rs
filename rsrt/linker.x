@@ -37,7 +37,7 @@ SECTIONS
         _edata = .;
     } > REGION_DATA
 
-    .bss(NOLOAD) : {
+    .bss : {
         _sbss = .;
         *(.bss .bss.* .sbss .sbss.*)
         _ebss = .;

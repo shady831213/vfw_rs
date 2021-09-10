@@ -45,6 +45,15 @@ pub fn run_task(task: &Task) {
         mv a6, {7}
         mv a7, {8}
         jalr ra,{0}",
-                in(reg) task.entry, in(reg) task.args[0], in(reg) task.args[1], in(reg) task.args[2], in(reg) task.args[3], in(reg) task.args[4], in(reg) task.args[5], in(reg) task.args[6], in(reg) task.args[7]);
+        in(reg) task.entry, 
+        in(reg) task.args[0], 
+        in(reg) task.args[1], 
+        in(reg) task.args[2], 
+        in(reg) task.args[3], 
+        in(reg) task.args[4], 
+        in(reg) task.args[5], 
+        in(reg) task.args[6], 
+        in(reg) task.args[7],
+        clobber_abi("C"),);
     }
 }

@@ -44,9 +44,7 @@ pub fn run_task(task: &Task) {
         mv a5, $6
         mv a6, $7
         mv a7, $8
-        jalr ra,$0"
-                :
-                :"r"(task.entry), "r"(task.args[0]), "r"(task.args[1]), "r"(task.args[2]), "r"(task.args[3]), "r"(task.args[4]), "r"(task.args[5]), "r"(task.args[6]), "r"(task.args[7])
-                :"ra", "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7");
+        jalr ra,$0",
+                in(ra) task.entry, in(a0) task.args[0], in(a1) task.args[1], in(a2) task.args[2], in(a3) task.args[3], in(a4) task.args[4], in(a5) task.args[5], in(a6) task.args[6], in(a7) task.args[7]);
     }
 }

@@ -36,7 +36,7 @@ pub fn rv_restore_flag(flag: usize) {
 
 pub fn run_task(task: &Task) {
     unsafe {
-        llvm_asm!("mv a0, $1
+        asm!("mv a0, $1
         mv a1, $2
         mv a2, $3
         mv a3, $4

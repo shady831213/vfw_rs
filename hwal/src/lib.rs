@@ -5,7 +5,7 @@
 #![feature(alloc_error_handler)]
 #![allow(incomplete_features)]
 #![feature(inline_const)]
-#![feature(const_fn)]
+#![feature(const_fn_trait_bound)]
 #![feature(const_mut_refs)]
 extern crate rsrt;
 pub mod arch;

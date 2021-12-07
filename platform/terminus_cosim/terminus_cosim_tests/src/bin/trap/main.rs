@@ -1,6 +1,6 @@
 #![no_std]
 #![no_main]
-#![feature(llvm_asm)]
+#![feature(asm)]
 extern crate platform;
 extern crate compiler_builtins;
 use platform::*;
@@ -10,10 +10,7 @@ fn trap_test() -> u32 {
     unsafe { register_exception_handler(my_exp_handler) };
     init_trap(TrapMode::Vectored);
     unsafe {
-        llvm_asm!("ecall"
-            :
-            :
-            :);
+        asm!("ecall");
     }
     0xff
 }

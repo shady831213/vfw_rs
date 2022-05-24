@@ -1,5 +1,4 @@
 use super::{Clk, GenClk};
-use crate::spin::Mutex;
 use core::ops::Deref;
 struct ClkDivState {
     div: usize,
@@ -8,19 +7,19 @@ struct ClkDivState {
 
 pub struct ClkDiv<T: Clk> {
     inner: T,
-    state: Mutex<ClkDivState>,
+    state: ClkDivState,
 }
 impl<T: Clk> ClkDiv<T> {
     pub const fn new(clk: T, div: usize, mul: usize) -> ClkDiv<T> {
         ClkDiv {
             inner: clk,
-            state: Mutex::new(ClkDivState { div, mul }),
+            state: ClkDivState { div, mul },
         }
     }
 }
 impl<T: Clk> Clk for ClkDiv<T> {
     fn calculate(&self) -> usize {
-        let state = self.state.lock();
+        let state = &self.state;
         self.inner.calculate() * state.mul / state.div
     }
     fn enabled(&self) -> bool {

@@ -11,6 +11,6 @@ fn main() {
         .unwrap();
     println!("cargo:rerun-if-changed=memory.x");
     println!("cargo:rustc-link-search={}", out_dir.display());
-    platform_build();
+    bindgen_build();
     println!("cargo:rerun-if-changed=build.rs");
 }

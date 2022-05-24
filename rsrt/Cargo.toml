@@ -1,21 +1,23 @@
 [package]
 name = "rsrt"
 version = "0.1.0"
+rust-version = "1.60"
 authors = ["yang.li <yang.li@picocom.com>"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-spin = "0.7"
+spin = { version = "0.7", optional = true }
 buddy_system_allocator = "0.7"
 lazy_static = { version = "1", features = ["spin_no_std"] }
 
 [features]
 full_panic = []
-max_cores_4 = []
-max_cores_8 = []
-max_cores_16 = []
-max_cores_32 = []
-max_cores_64 = []
-max_cores_128 = []
+max_cores_1 = []
+max_cores_4 = ["spin"]
+max_cores_8 = ["spin"]
+max_cores_16 = ["spin"]
+max_cores_32 = ["spin"]
+max_cores_64 = ["spin"]
+max_cores_128 = ["spin"]

@@ -4,17 +4,27 @@
 #include <stdarg.h>
 #define NTH_ARG(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, N, ...) N
 #define COUNT_VARGS(...) NTH_ARG(__VA_ARGS__, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1)
+extern unsigned int num_cores();
 extern unsigned int hartid();
 extern unsigned int save_flag();
 extern void restore_flag(unsigned int flag);
-extern void restore_flag(unsigned int flag);
+extern void mem_wb(unsigned int start, unsigned int size);
+extern void mem_flush(unsigned int start, unsigned int size);
+extern void mem_invalid(unsigned int start, unsigned int size);
 extern void exit(int code);
 
 extern void *malloc(unsigned int size, unsigned int align);
 extern void free(void *ptr, unsigned int size, unsigned int align);
 
-#define io_write32(a, v) *((volatile unsigned int *)(a)) = (v)
-#define io_read32(a) (*((volatile unsigned int *)(a)))
+#define io_write8(a, v) *((volatile uint8_t *)(a)) = (v)
+#define io_read8(a) (*((volatile uint8_t *)(a)))
+#define io_write16(a, v) *((volatile uint16_t *)(a)) = (v)
+#define io_read16(a) (*((volatile uint16_t *)(a)))
+#define io_write32(a, v) *((volatile uint32_t *)(a)) = (v)
+#define io_read32(a) (*((volatile uint32_t *)(a)))
+#define io_write64(a, v) *((volatile uint64_t *)(a)) = (v)
+#define io_read64(a) (*((volatile uint64_t *)(a)))
+
 #define va_args_to_ptr(first_arg, rest_args, rest_args_len, va_len, first_type, rest_type) \
     {                                                                                      \
         va_list args;                                                                      \

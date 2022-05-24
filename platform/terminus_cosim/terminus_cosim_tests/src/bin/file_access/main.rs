@@ -1,6 +1,5 @@
 #![no_std]
 #![no_main]
-extern crate compiler_builtins;
 extern crate platform;
 use platform::*;
 extern "C" {

@@ -68,19 +68,26 @@ static inline void fclose(FD fd)
     mailbox_fclose(fd);
 }
 
-static inline unsigned int fread(FD fd, void *buf, unsigned int len)
-{
-    return mailbox_fread(fd, buf, len);
-}
+#define fread(fd, buf, len) mailbox_fread(fd, (void *)(buf), len)
 
-static inline unsigned int fwrite(FD fd, const void *buf, unsigned int len)
-{
-    return mailbox_fwrite(fd, buf, len);
-}
+#define fwrite(fd, buf, len) mailbox_fwrite(fd, (void *)(buf), len)
 
 static inline unsigned int fseek(FD fd, unsigned int pos)
 {
     return mailbox_fseek(fd, pos);
 }
+
+
+extern void* mailbox_memmove(void *dest, const void *src, unsigned int size);
+extern void* mailbox_memset(void *dest, int data, unsigned int size);
+extern int mailbox_memcmp(const void *s1, const void *s2, unsigned int size);
+
+#define bd_memmove(dest, src, size) mailbox_memmove((void *)(dest), (void *)(src), (unsigned int)(size))
+
+#define bd_memcpy(dest, src, size) mailbox_memmove((void *)(dest), (void *)(src), (unsigned int)(size))
+
+#define bd_memset(dest, data, size) mailbox_memset((void *)(dest), (unsigned int)((unsigned char)(data)), (unsigned int)(size))
+
+#define bd_memcmp(s1, s2, size) mailbox_memcmp((void *)(s1), (void *)(s2), (unsigned int)(size))
 
 #endif

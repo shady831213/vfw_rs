@@ -10,3 +10,5 @@ mod shared_clk;
 pub use shared_clk::*;
 mod const_clk;
 pub use const_clk::*;
+mod rst;
+pub use rst::*;

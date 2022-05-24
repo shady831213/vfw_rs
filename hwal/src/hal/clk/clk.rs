@@ -1,8 +1,10 @@
 pub trait Clk {
     fn calculate(&self) -> usize;
-    fn enable(&self);
-    fn enabled(&self) -> bool;
-    fn disable(&self);
+    fn enable(&self) {}
+    fn enabled(&self) -> bool {
+        true
+    }
+    fn disable(&self) {}
 }
 
 pub trait GenClk: Clk {

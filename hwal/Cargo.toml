@@ -1,20 +1,28 @@
 [package]
 name = "hwal"
 version = "0.1.0"
-authors = ["shady831213 <shady831213@126.com>"]
+rust-version = "1.60"
+authors = ["yang.li <yang.li@picocom.com>"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-riscv = { version = "0.6", features = ["inline-asm"] }
+embedded-hal = "0.2"
 rsrt = { path = "../rsrt"}
-mailbox_rs = { git = "https://github.com/shady831213/mailbox_rs" , features = ["no_std", "ptr32"], optional = true}
+spin = { version = "0.7"}
+paste =  { version = "1" }
+nb = { version = "1" }
+mailbox_rs = { git = "https://github.com/shady831213/mailbox_rs" , branch="master", features = ["no_std", "ptr32"], optional = true}
+
+[target.'cfg(any(target_arch = "riscv32", target_arch = "riscv64"))'.dependencies]
+riscv = { version = "0.8" }
+rustsbi = "0.2"
 
 [features]
-default=["mailbox_rs", "full_panic", "max_cores_4"]
+default=["mailbox_rs", "full_panic", "max_cores_16"]
 full_panic=["rsrt/full_panic"]
-mailbox_shared=[]
+max_cores_1 = ["rsrt/max_cores_1"]
 max_cores_4 = ["rsrt/max_cores_4"]
 max_cores_8 = ["rsrt/max_cores_8"]
 max_cores_16 = ["rsrt/max_cores_16"]

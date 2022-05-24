@@ -1,8 +1,6 @@
 #![no_std]
 #![no_main]
-#![feature(asm)]
 extern crate platform;
-extern crate compiler_builtins;
 use platform::*;
 use riscv::register::{mcause, mepc, mtvec::TrapMode};
 #[export_name = "main"]
@@ -10,7 +8,7 @@ fn trap_test() -> u32 {
     unsafe { register_exception_handler(my_exp_handler) };
     init_trap(TrapMode::Vectored);
     unsafe {
-        asm!("ecall");
+        core::arch::asm!("ecall");
     }
     0xff
 }

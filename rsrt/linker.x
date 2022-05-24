@@ -33,6 +33,18 @@ SECTIONS
         _ebss = .;
     } > REGION_BSS
 
+    .cpu.bss : {
+        _s_cpu_bss = .;
+        *(.cpu.bss .cpu.bss.*)
+        _e_cpu_bss = .;
+    } > REGION_CPU_BSS
+
+    .synced.bss : {
+        _s_synced_bss = .;
+        *(.synced.bss .synced.bss.*)
+        _e_synced_bss= .;
+    } > REGION_SYNCED_BSS
+
     .data : {
         sidata = LOADADDR(.data);
         _sdata = .;
@@ -42,6 +54,20 @@ SECTIONS
         *(.data .data.*)
         _edata = .;
     } > REGION_DATA
+
+    .synced.data : {
+        sisynceddata = LOADADDR(.synced.data);
+        _s_synced_data = .;
+        *(.synced.data .synced.data.*)
+        _e_synced_data = .;
+    } > REGION_SYNCED_DATA
+
+    .cpu.data : {
+        sicpudata = LOADADDR(.cpu.data);
+        _s_cpu_data = .;
+        *(.cpu.data .cpu.data.*)
+        _e_cpu_data = .;
+    } > REGION_CPU_DATA
 
     .heap (NOLOAD) : {
         _sheap = .;

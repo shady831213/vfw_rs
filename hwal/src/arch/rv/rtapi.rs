@@ -1,4 +1,3 @@
-use crate::rsrt::*;
 pub fn rv_wait_ipi() {
     use riscv::asm::wfi;
     use riscv::register::mie;
@@ -34,18 +33,21 @@ pub fn rv_restore_flag(flag: usize) {
     }
 }
 
+#[cfg(not(feature = "max_cores_1"))]
+use crate::rsrt::Task;
+#[cfg(not(feature = "max_cores_1"))]
 pub fn run_task(task: &Task) {
     unsafe {
-        asm!(        
-            "jalr ra,{0}",in(reg) task.entry,
-            in("a0") task.args[0], 
-            in("a1") task.args[1], 
-            in("a2") task.args[2], 
-            in("a3") task.args[3], 
-            in("a4") task.args[4], 
-            in("a5") task.args[5], 
-            in("a6") task.args[6], 
-            in("a7") task.args[7],
-            clobber_abi("C"),)
+        core::arch::asm!(
+        "jalr ra,{0}",in(reg) task.entry,
+        in("a0") task.args[0],
+        in("a1") task.args[1],
+        in("a2") task.args[2],
+        in("a3") task.args[3],
+        in("a4") task.args[4],
+        in("a5") task.args[5],
+        in("a6") task.args[6],
+        in("a7") task.args[7],
+        clobber_abi("C"),)
     }
 }

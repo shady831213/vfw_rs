@@ -11,9 +11,4 @@ impl Clk for ConstClk {
     fn calculate(&self) -> usize {
         self.freq
     }
-    fn enable(&self) {}
-    fn enabled(&self) -> bool {
-        true
-    }
-    fn disable(&self) {}
 }

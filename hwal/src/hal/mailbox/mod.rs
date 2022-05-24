@@ -14,11 +14,7 @@ extern "C" fn __mb_restore_flag(flag: u32) {
     restore_flag(flag as usize)
 }
 
-#[cfg(feature = "mailbox_shared")]
-static mut MB_SENDER: MBNbLockRefSender<MBChannel> =
-    MBNbLockRefSender::new(unsafe { &mut MB_CH_RAW });
-
-#[cfg(not(feature = "mailbox_shared"))]
+#[link_section = ".synced.data"]
 static mut MB_SENDER: MBNbRefSender<MBChannel> = MBNbRefSender::new(unsafe { &mut MB_CH_RAW });
 
 struct MBPrinter;
@@ -32,6 +28,11 @@ impl fmt::Write for MBPrinter {
         mb_print(mb_sender(), s);
         Ok(())
     }
+}
+
+//ensure mem zerolize
+pub fn mailbox_init() {
+    mb_sender().reset()//need debug
 }
 
 #[no_mangle]
@@ -90,6 +91,13 @@ extern "C" fn mailbox_svcall(method: *const u8, arg_len: u32, args: *const u32) 
     mb_svcall(mb_sender(), method, arg_len, args as *const MBPtrT) as u32
 }
 
+#[no_mangle]
+unsafe extern "C" fn __assert_func(file: *const u8, line: usize, func: *const u8, msg: *const u8) {
+    let args = [msg as u32, func as u32, file as u32, line as u32];
+    mailbox_cprint("Assert Fail:%s! (in func: %s, file: %s, line: %d)\n".as_bytes().as_ptr(), core::concat!(file!(), "\0").as_bytes().as_ptr(), line!(), args.len() as u32, args.as_ptr());
+    panic!()
+}
+
 #[macro_export]
 macro_rules! svcall {
     ($method:expr) => {{
@@ -134,17 +142,20 @@ pub fn mailbox_exit(code: u32) -> ! {
     loop {}
 }
 
-pub fn mailbox_memmove(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
+#[no_mangle]
+extern "C" fn mailbox_memmove(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
     mb_memmove(mb_sender(), dest as MBPtrT, src as MBPtrT, n as MBPtrT);
     dest
 }
 
-pub fn mailbox_memset(dest: *mut u8, data: i32, n: usize) -> *mut u8 {
+#[no_mangle]
+extern "C" fn mailbox_memset(dest: *mut u8, data: i32, n: usize) -> *mut u8 {
     mb_memset(mb_sender(), dest as MBPtrT, data as MBPtrT, n as MBPtrT);
     dest
 }
 
-pub fn mailbox_memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
+#[no_mangle]
+extern "C" fn mailbox_memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
     mb_memcmp(mb_sender(), s1 as MBPtrT, s2 as MBPtrT, n as MBPtrT)
 }
 
@@ -171,6 +182,44 @@ extern "C" fn mailbox_fwrite(fb: u32, ptr: *const u8, len: usize) -> usize {
 #[no_mangle]
 extern "C" fn mailbox_fseek(fb: u32, pos: MBPtrT) -> MBPtrT {
     mb_fseek(mb_sender(), fb, pos)
+}
+
+pub mod bd_mem {
+    use super::{mailbox_memcmp, mailbox_memmove, mailbox_memset};
+    pub fn bd_memmove(dest: &mut [u8], src: &[u8]) {
+        let size = if dest.len() > src.len() {
+            src.len()
+        } else {
+            dest.len()
+        };
+        let dest = dest.as_mut_ptr();
+        let src = src.as_ptr();
+        mailbox_memmove(dest, src, size);
+    }
+    pub fn bd_memcpy(dest: &mut [u8], src: &[u8]) {
+        let size = if dest.len() > src.len() {
+            src.len()
+        } else {
+            dest.len()
+        };
+        let dest = dest.as_mut_ptr();
+        let src = src.as_ptr();
+        mailbox_memmove(dest, src, size);
+    }
+    pub fn bd_memset(dest: &mut [u8], data: u8) {
+        let size = dest.len();
+        let dest = dest.as_mut_ptr();
+        mailbox_memset(dest, data as i32, size);
+    }
+    pub fn bd_memcmp(s1: &[u8], s2: &[u8]) -> bool {
+        if s1.len() != s2.len() {
+            return false;
+        }
+        let size = s1.len();
+        let s1 = s1.as_ptr();
+        let s2 = s2.as_ptr();
+        mailbox_memcmp(s1, s2, size) == 0
+    }
 }
 
 pub mod fs {

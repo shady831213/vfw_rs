@@ -5,10 +5,9 @@ extern "C" {
     fn __wait_ipi();
 }
 
-pub fn wait_ipi(hartid: usize) {
+pub fn wait_ipi() {
     unsafe {
         __wait_ipi();
-        __clear_ipi(hartid);
     }
 }
 

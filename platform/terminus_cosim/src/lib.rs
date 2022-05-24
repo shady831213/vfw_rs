@@ -49,7 +49,9 @@ fn exit(code: u32) -> ! {
 }
 
 #[export_name = "__pre_init"]
-fn pre_init() {}
+fn pre_init() {
+    mailbox_init();
+}
 
 #[export_name = "__boot_core_init"]
 fn boot_core_init() {

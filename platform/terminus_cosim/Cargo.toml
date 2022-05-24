@@ -12,9 +12,6 @@ hwal = { path = "../../hwal"}
 [build-dependencies]
 build_tools = {path = "../../build_tools"}
 
-[features]
-mailbox_mem=[]
-
 [workspace]
 members = [
     "terminus_cosim_tests",

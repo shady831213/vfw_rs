@@ -17,11 +17,11 @@ extern void allocator_add_block(allocator *a, uint32_t start, uint32_t size);
 extern void *allocator_alloc(allocator *a, uint32_t size, uint32_t align);
 extern void allocator_free(allocator *a, uint32_t start, uint32_t size);
 
-#define al_new() (          \
-    {                       \
-        allocator a;        \
-        allocator_init(&a); \
-        a;                  \
+#define al_new() (           \
+    {                        \
+        allocator a = {{0}}; \
+        allocator_init(&a);  \
+        a;                   \
     })
 #define al_add_block(a, st, sz) allocator_add_block(a, (st), (sz))
 #define al_alloc(a, sz, al) (                                          \

@@ -2,8 +2,33 @@ extern crate mailbox_rs;
 use crate::rsrt::*;
 use core::fmt;
 pub use mailbox_rs::{mb_channel::*, mb_no_std::*, mb_rpcs::*};
+#[cfg(all(feature = "mb_multi", feature = "max_cores_16"))]
+const MBS: usize = 16;
+#[cfg(all(feature = "mb_multi", feature = "max_cores_8"))]
+const MBS: usize = 8;
+#[cfg(all(feature = "mb_multi", feature = "max_cores_4"))]
+const MBS: usize = 4;
+#[cfg(all(feature = "mb_multi", feature = "max_cores_2"))]
+const MBS: usize = 2;
+#[cfg(any(
+    not(feature = "mb_multi"),
+    not(any(
+        feature = "max_cores_16",
+        feature = "max_cores_8",
+        feature = "max_cores_4",
+        feature = "max_cores_2"
+    ))
+))]
+const MBS: usize = 1;
+
 #[link_section = ".mailbox_queue"]
-static mut MB_CH_RAW: MBChannel = MBChannel::const_init();
+static mut MB_CH_RAW: [MBChannel; MBS] = [MBChannel::const_init(); MBS];
+
+pub fn mb_sender() -> MBNbRefSender<MBChannel> {
+    let id = if MBS > 1 { hartid() } else { 0 };
+
+    MBNbRefSender::new(unsafe { &mut MB_CH_RAW[id] })
+}
 
 #[no_mangle]
 extern "C" fn __mb_save_flag() -> u32 {
@@ -14,18 +39,11 @@ extern "C" fn __mb_restore_flag(flag: u32) {
     restore_flag(flag as usize)
 }
 
-#[link_section = ".synced.data"]
-static mut MB_SENDER: MBNbRefSender<MBChannel> = MBNbRefSender::new(unsafe { &mut MB_CH_RAW });
-
 struct MBPrinter;
-
-pub fn mb_sender() -> &'static mut impl MBNbSender {
-    unsafe { &mut MB_SENDER }
-}
 
 impl fmt::Write for MBPrinter {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        mb_print(mb_sender(), s);
+        mb_print(&mut mb_sender(), s);
         Ok(())
     }
 }
@@ -43,7 +61,7 @@ extern "C" fn mailbox_cprint(
     arg_len: u32,
     args: *const u32,
 ) {
-    mb_cprint(mb_sender(), fmt, file, line, arg_len, args as *const MBPtrT)
+    mb_cprint(&mut mb_sender(), fmt, file, line, arg_len, args as *const MBPtrT)
 }
 
 #[macro_export]
@@ -88,7 +106,7 @@ macro_rules! cprintln {
 
 #[no_mangle]
 extern "C" fn mailbox_svcall(method: *const u8, arg_len: u32, args: *const u32) -> u32 {
-    mb_svcall(mb_sender(), method, arg_len, args as *const MBPtrT) as u32
+    mb_svcall(&mut mb_sender(), method, arg_len, args as *const MBPtrT) as u32
 }
 
 #[no_mangle]
@@ -138,50 +156,50 @@ pub fn mailbox_print_str(s: &str) {
 }
 
 pub fn mailbox_exit(code: u32) -> ! {
-    mb_exit(mb_sender(), code);
+    mb_exit(&mut mb_sender(), code);
     loop {}
 }
 
 #[no_mangle]
 extern "C" fn mailbox_memmove(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
-    mb_memmove(mb_sender(), dest as MBPtrT, src as MBPtrT, n as MBPtrT);
+    mb_memmove(&mut mb_sender(), dest as MBPtrT, src as MBPtrT, n as MBPtrT);
     dest
 }
 
 #[no_mangle]
 extern "C" fn mailbox_memset(dest: *mut u8, data: i32, n: usize) -> *mut u8 {
-    mb_memset(mb_sender(), dest as MBPtrT, data as MBPtrT, n as MBPtrT);
+    mb_memset(&mut mb_sender(), dest as MBPtrT, data as MBPtrT, n as MBPtrT);
     dest
 }
 
 #[no_mangle]
 extern "C" fn mailbox_memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
-    mb_memcmp(mb_sender(), s1 as MBPtrT, s2 as MBPtrT, n as MBPtrT)
+    mb_memcmp(&mut mb_sender(), s1 as MBPtrT, s2 as MBPtrT, n as MBPtrT)
 }
 
 #[no_mangle]
 extern "C" fn mailbox_fopen(path: *const u8, flags: u32) -> u32 {
-    mb_fopen(mb_sender(), path as MBPtrT, flags)
+    mb_fopen(&mut mb_sender(), path as MBPtrT, flags)
 }
 
 #[no_mangle]
 pub fn mailbox_fclose(fb: u32) {
-    mb_fclose(mb_sender(), fb)
+    mb_fclose(&mut mb_sender(), fb)
 }
 
 #[no_mangle]
 extern "C" fn mailbox_fread(fb: u32, ptr: *mut u8, len: usize) -> usize {
-    mb_fread(mb_sender(), fb, ptr as MBPtrT, len as MBPtrT)
+    mb_fread(&mut mb_sender(), fb, ptr as MBPtrT, len as MBPtrT)
 }
 
 #[no_mangle]
 extern "C" fn mailbox_fwrite(fb: u32, ptr: *const u8, len: usize) -> usize {
-    mb_fwrite(mb_sender(), fb, ptr as MBPtrT, len as MBPtrT)
+    mb_fwrite(&mut mb_sender(), fb, ptr as MBPtrT, len as MBPtrT)
 }
 
 #[no_mangle]
 extern "C" fn mailbox_fseek(fb: u32, pos: MBPtrT) -> MBPtrT {
-    mb_fseek(mb_sender(), fb, pos)
+    mb_fseek(&mut mb_sender(), fb, pos)
 }
 
 pub mod bd_mem {

@@ -15,6 +15,7 @@ lazy_static = { version = "1", features = ["spin_no_std"] }
 [features]
 full_panic = []
 max_cores_1 = []
+max_cores_2 = ["spin"]
 max_cores_4 = ["spin"]
 max_cores_8 = ["spin"]
 max_cores_16 = ["spin"]

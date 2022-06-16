@@ -4,6 +4,8 @@ mod hw_thread_imp {
     use crate::ipi::*;
     use crate::sys::num_cores;
     use spin::Mutex;
+    #[cfg(feature = "max_cores_2")]
+    const MAX_CORES: usize = 2;
     #[cfg(feature = "max_cores_4")]
     const MAX_CORES: usize = 4;
     #[cfg(feature = "max_cores_8")]

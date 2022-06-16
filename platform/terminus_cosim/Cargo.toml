@@ -7,7 +7,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-hwal = { path = "../../hwal", default_features = false, features=["mb_multi", "mailbox_rs", "full_panic", "max_cores_16"]}
+hwal = { path = "../../hwal", features=["mb_multi"]}
 
 [build-dependencies]
 build_tools = {path = "../../build_tools"}

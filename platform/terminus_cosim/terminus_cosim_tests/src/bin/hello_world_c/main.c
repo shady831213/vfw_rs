@@ -13,7 +13,7 @@ uint32_t main()
     join(task1_id);
     for (int i = 0; i < 20; i++)
     {
-        printf("hello %s, %d, %f, %x, %x, \\% \n", "cprint", i, float_to_arg(1.2345), 0x1234, 0x1234);
+        printf("hello %s, %d, %f, %x, %x, %% \n", "cprint", i, float_to_arg(1.2345), 0x1234, 0x1234);
     }
     join(task2_id);
     free(subargs, sizeof(uint32_t), sizeof(uint32_t));

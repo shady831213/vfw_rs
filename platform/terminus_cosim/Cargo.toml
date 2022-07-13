@@ -16,3 +16,6 @@ build_tools = {path = "../../build_tools"}
 members = [
     "terminus_cosim_tests",
 ]
+
+[profile.release]
+lto = true

@@ -1,4 +1,6 @@
+.section .text, "ax"
 .global _start_trap
+.align 2
 _start_trap:
     csrrw   sp, mscratch, sp
     bnez    sp, 1f

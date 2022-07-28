@@ -25,38 +25,38 @@ where
     }
     fn hpm_read(&self, idx: usize) -> u64 {
         match idx {
-            0 => cycle::read64(),
-            1 => instret::read64(),
+            0 => mcycle::read64(),
+            1 => minstret::read64(),
             2 => 0,
-            3 => hpmcounter3::read64(),
-            4 => hpmcounter4::read64(),
-            5 => hpmcounter5::read64(),
-            6 => hpmcounter6::read64(),
-            7 => hpmcounter7::read64(),
-            8 => hpmcounter8::read64(),
-            9 => hpmcounter9::read64(),
-            10 => hpmcounter10::read64(),
-            11 => hpmcounter11::read64(),
-            12 => hpmcounter12::read64(),
-            13 => hpmcounter13::read64(),
-            14 => hpmcounter14::read64(),
-            15 => hpmcounter15::read64(),
-            16 => hpmcounter16::read64(),
-            17 => hpmcounter17::read64(),
-            18 => hpmcounter18::read64(),
-            19 => hpmcounter19::read64(),
-            20 => hpmcounter20::read64(),
-            21 => hpmcounter21::read64(),
-            22 => hpmcounter22::read64(),
-            23 => hpmcounter23::read64(),
-            24 => hpmcounter24::read64(),
-            25 => hpmcounter25::read64(),
-            26 => hpmcounter26::read64(),
-            27 => hpmcounter27::read64(),
-            28 => hpmcounter28::read64(),
-            29 => hpmcounter29::read64(),
-            30 => hpmcounter30::read64(),
-            31 => hpmcounter31::read64(),
+            3 => mhpmcounter3::read64(),
+            4 => mhpmcounter4::read64(),
+            5 => mhpmcounter5::read64(),
+            6 => mhpmcounter6::read64(),
+            7 => mhpmcounter7::read64(),
+            8 => mhpmcounter8::read64(),
+            9 => mhpmcounter9::read64(),
+            10 => mhpmcounter10::read64(),
+            11 => mhpmcounter11::read64(),
+            12 => mhpmcounter12::read64(),
+            13 => mhpmcounter13::read64(),
+            14 => mhpmcounter14::read64(),
+            15 => mhpmcounter15::read64(),
+            16 => mhpmcounter16::read64(),
+            17 => mhpmcounter17::read64(),
+            18 => mhpmcounter18::read64(),
+            19 => mhpmcounter19::read64(),
+            20 => mhpmcounter20::read64(),
+            21 => mhpmcounter21::read64(),
+            22 => mhpmcounter22::read64(),
+            23 => mhpmcounter23::read64(),
+            24 => mhpmcounter24::read64(),
+            25 => mhpmcounter25::read64(),
+            26 => mhpmcounter26::read64(),
+            27 => mhpmcounter27::read64(),
+            28 => mhpmcounter28::read64(),
+            29 => mhpmcounter29::read64(),
+            30 => mhpmcounter30::read64(),
+            31 => mhpmcounter31::read64(),
             _ => panic!("Invalid hpm idx!"),
         }
     }
@@ -68,10 +68,10 @@ where
         write_csr!(CNT_INH, 0xffffffffusize);
     }
     pub fn cycle(&self) -> u64 {
-        cycle::read64() - self.hpm_start[0]
+        mcycle::read64() - self.hpm_start[0]
     }
     pub fn insns(&self) -> u64 {
-        instret::read64() - self.hpm_start[1]
+        minstret::read64() - self.hpm_start[1]
     }
     pub fn hpm(&self, idx: usize) -> u64 {
         self.hpm_read(idx) - self.hpm_start[idx]

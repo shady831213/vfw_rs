@@ -1,9 +1,10 @@
 pub extern crate riscv;
+pub mod hpm;
+pub mod pmp;
 pub mod rtapi;
 pub mod sbi;
 pub mod standard;
 pub mod trap;
-pub mod pmp;
 core::arch::global_asm!(include_str!("crt.S"));
 #[macro_export]
 macro_rules! read_csr {

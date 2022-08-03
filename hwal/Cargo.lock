@@ -68,7 +68,7 @@ dependencies = [
 [[package]]
 name = "mailbox_rs"
 version = "0.1.0"
-source = "git+https://github.com/shady831213/mailbox_rs?branch=master#6fef03c3d10a21439b31dda113d57102e9cdf21d"
+source = "git+https://github.com/shady831213/mailbox_rs?branch=master#fcf4d0e5176ca55c8c9d78081b158e51c97fd5e2"
 dependencies = [
  "nb 1.0.0",
  "spin 0.7.1",

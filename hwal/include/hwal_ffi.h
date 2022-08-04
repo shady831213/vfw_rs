@@ -19,9 +19,9 @@ static inline void printf_wrapper(const char *file, unsigned int line, unsigned 
 extern unsigned int mailbox_svcall(const char *method, unsigned int arg_len, unsigned int *args);
 static inline unsigned int svcall_wrapper(unsigned int args_len, ...)
 {
-    unsigned int buf[15];
+    unsigned int buf[16];
     const char *method;
-    unsigned int num_args = (args_len - 1) > 15 ? 15 : args_len - 1;
+    unsigned int num_args = (args_len - 1) > 16 ? 16 : args_len - 1;
     va_args_to_ptr(method, buf, num_args, args_len, const char *, unsigned int);
     return mailbox_svcall(method, num_args, buf);
 }

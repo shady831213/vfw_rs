@@ -50,7 +50,7 @@ impl fmt::Write for MBPrinter {
 
 //ensure mem zerolize
 pub fn mailbox_init() {
-    mb_sender().reset()//need debug
+    mb_sender().reset() //need debug
 }
 
 #[no_mangle]
@@ -61,7 +61,14 @@ extern "C" fn mailbox_cprint(
     arg_len: u32,
     args: *const u32,
 ) {
-    mb_cprint(&mut mb_sender(), fmt, file, line, arg_len, args as *const MBPtrT)
+    mb_cprint(
+        &mut mb_sender(),
+        fmt,
+        file,
+        line,
+        arg_len,
+        args as *const MBPtrT,
+    )
 }
 
 #[macro_export]
@@ -112,7 +119,15 @@ extern "C" fn mailbox_svcall(method: *const u8, arg_len: u32, args: *const u32) 
 #[no_mangle]
 unsafe extern "C" fn __assert_func(file: *const u8, line: usize, func: *const u8, msg: *const u8) {
     let args = [msg as u32, func as u32, file as u32, line as u32];
-    mailbox_cprint("Assert Fail:%s! (in func: %s, file: %s, line: %d)\n".as_bytes().as_ptr(), core::concat!(file!(), "\0").as_bytes().as_ptr(), line!(), args.len() as u32, args.as_ptr());
+    mailbox_cprint(
+        "Assert Fail:%s! (in func: %s, file: %s, line: %d)\n\0"
+            .as_bytes()
+            .as_ptr(),
+        core::concat!(file!(), "\0").as_bytes().as_ptr(),
+        line!(),
+        args.len() as u32,
+        args.as_ptr(),
+    );
     panic!()
 }
 
@@ -168,7 +183,12 @@ extern "C" fn mailbox_memmove(dest: *mut u8, src: *const u8, n: usize) -> *mut u
 
 #[no_mangle]
 extern "C" fn mailbox_memset(dest: *mut u8, data: i32, n: usize) -> *mut u8 {
-    mb_memset(&mut mb_sender(), dest as MBPtrT, data as MBPtrT, n as MBPtrT);
+    mb_memset(
+        &mut mb_sender(),
+        dest as MBPtrT,
+        data as MBPtrT,
+        n as MBPtrT,
+    );
     dest
 }
 

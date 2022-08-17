@@ -16,16 +16,16 @@ static inline void printf_wrapper(const char *file, unsigned int line, unsigned 
     (unsigned int)(*(unsigned int *)(&_f)); \
 })
 
-extern unsigned int mailbox_svcall(const char *method, unsigned int arg_len, unsigned int *args);
-static inline unsigned int svcall_wrapper(unsigned int args_len, ...)
+extern unsigned int mailbox_call(const char *method, unsigned int arg_len, unsigned int *args);
+static inline unsigned int mbcall_wrapper(unsigned int args_len, ...)
 {
     unsigned int buf[16];
     const char *method;
     unsigned int num_args = (args_len - 1) > 16 ? 16 : args_len - 1;
     va_args_to_ptr(method, buf, num_args, args_len, const char *, unsigned int);
-    return mailbox_svcall(method, num_args, buf);
+    return mailbox_call(method, num_args, buf);
 }
-#define svcall(...) svcall_wrapper(COUNT_VARGS(__VA_ARGS__), __VA_ARGS__)
+#define mbcall(...) mbcall_wrapper(COUNT_VARGS(__VA_ARGS__), __VA_ARGS__)
 
 #define MB_FILE_READ 0x1
 #define MB_FILE_WRITE 0x2

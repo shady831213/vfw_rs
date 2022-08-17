@@ -4,12 +4,12 @@
 extern crate platform;
 use platform::*;
 #[export_name = "main"]
-fn svcall_test() -> u32 {
+fn mbcall_test() -> u32 {
     for _ in 0..5 {
-        svcall!("sv_display2", "method2\0".as_ptr());
+        mbcall!("sv_display2", "method2\0".as_ptr());
     }
     for i in 0..5 {
-        svcall!("sv_display1", "method1\0".as_ptr(), i + 5);
+        mbcall!("sv_display1", "method1\0".as_ptr(), i + 5);
     }
     1
 }

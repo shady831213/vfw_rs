@@ -112,8 +112,8 @@ macro_rules! cprintln {
 }
 
 #[no_mangle]
-extern "C" fn mailbox_svcall(method: *const u8, arg_len: u32, args: *const u32) -> u32 {
-    mb_svcall(&mut mb_sender(), method, arg_len, args as *const MBPtrT) as u32
+extern "C" fn mailbox_call(method: *const u8, arg_len: u32, args: *const u32) -> u32 {
+    mb_call(&mut mb_sender(), method, arg_len, args as *const MBPtrT) as u32
 }
 
 #[no_mangle]
@@ -132,16 +132,16 @@ unsafe extern "C" fn __assert_func(file: *const u8, line: usize, func: *const u8
 }
 
 #[macro_export]
-macro_rules! svcall {
+macro_rules! mbcall {
     ($method:expr) => {{
         extern "C" {
-            fn mailbox_svcall(method: *const u8,
+            fn mailbox_call(method: *const u8,
                 arg_len: u32,
                 args: *const u32) -> u32;
         }
         let args:[u32;0] = [0;0];
         unsafe {
-            mailbox_svcall(
+            mailbox_call(
                 core::concat!($method, "\0").as_bytes().as_ptr(),
                 0,
                 args.as_ptr(),
@@ -150,13 +150,13 @@ macro_rules! svcall {
     }};
     ($method:expr, $($arg:expr),*) => {{
         extern "C" {
-            fn mailbox_svcall(method: *const u8,
+            fn mailbox_call(method: *const u8,
                 arg_len: u32,
                 args: *const u32) -> u32;
         }
         let args = [$($arg as u32,)*];
         unsafe {
-            mailbox_svcall(
+            mailbox_call(
                 core::concat!($method, "\0").as_bytes().as_ptr(),
                 args.len() as u32,
                 args.as_ptr(),

@@ -1,6 +1,5 @@
 #![no_std]
 #![no_main]
-#![feature(llvm_asm)]
 extern crate platform;
 use platform::*;
 #[export_name = "main"]

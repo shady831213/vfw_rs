@@ -6,14 +6,14 @@ pub const fn map_size(size: usize) -> usize {
 #[derive(Copy, Clone)]
 pub struct BitMap<const N: usize>
 where
-    [(); map_size(N)]: ,
+    [(); map_size(N)]:,
 {
     map: [usize; map_size(N)],
 }
 
 impl<const N: usize> BitMap<N>
 where
-    [(); map_size(N)]: ,
+    [(); map_size(N)]:,
 {
     pub const fn new() -> BitMap<N> {
         BitMap {
@@ -23,7 +23,7 @@ where
 
     fn find_bit(&self, set: bool, from: usize, to: usize) -> Option<usize> {
         let from_i = from / MAP_ENTRY_BITS;
-        let to_i = (to + MAP_ENTRY_BITS - 2) / MAP_ENTRY_BITS;
+        let to_i = to / MAP_ENTRY_BITS;
         for i in from_i..=to_i {
             if self.map[i] != if set { 0 } else { !0 } {
                 let pos = i * MAP_ENTRY_BITS
@@ -32,7 +32,7 @@ where
                     } else {
                         self.map[i].trailing_ones()
                     } as usize;
-                if pos >= to {
+                if pos > to {
                     return None;
                 } else if pos >= from {
                     return Some(pos);
@@ -47,11 +47,11 @@ where
         (pos / MAP_ENTRY_BITS, pos % MAP_ENTRY_BITS)
     }
     pub fn find_1st0(&self) -> Option<usize> {
-        self.find_bit(false, 0, N)
+        self.find_bit(false, 0, N - 1)
     }
 
     pub fn find_1st1(&self) -> Option<usize> {
-        self.find_bit(true, 0, N)
+        self.find_bit(true, 0, N - 1)
     }
 
     pub fn find_1st0_range(&self, from: usize, to: usize) -> Option<usize> {

@@ -117,7 +117,7 @@ pub trait Umctl2Lpddr4: Umctrl2MPhyV2 {
         self.write_ctrl_reg(
             regs::UDDRC_RFSHTMG,
             regs::UDDRC_RFSHTMG_T_RFC_MIN(self.div_ratio(timing.n_rfc_ab))
-                | regs::UDDRC_RFSHTMG_T_RFC_NOM_X32(self.div_ratio(timing.n_refi_ab >> 5)),
+                | regs::UDDRC_RFSHTMG_T_RFC_NOM_X32(self.div_ratio(timing.n_refi_ab) >> 5),
         ); //(           RFSHTMG)
 
         self.write_ctrl_reg(

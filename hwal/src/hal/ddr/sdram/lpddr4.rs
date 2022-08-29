@@ -9,6 +9,8 @@ pub struct Lpddr4Timing {
     pub tRTP: f32,      //by ns
     pub tXP: f32,       //by ns
     pub tXPc: u32,      //by cycle of CK
+    pub tWR: f32,       //by ns
+    pub tWRc: u32,      //by cycle of CK
     pub tWTR: f32,      //by ns
     pub tWTRc: u32,     //by cycle of CK
     pub tDQSCKmax: f32, //by ns
@@ -68,6 +70,9 @@ impl Lpddr4Timing {
     }
     pub const fn n_wtr(&self, tck: f32) -> u32 {
         self.ceil_with_min(self.tWTR / tck, self.tWTRc)
+    }
+    pub const fn n_wr(&self, tck: f32) -> u32 {
+        self.ceil_with_min(self.tWR / tck, self.tWRc)
     }
     pub const fn n_dqsck_max(&self, tck: f32) -> u32 {
         self.ceil(self.tDQSCKmax / tck)
@@ -162,20 +167,6 @@ impl Lpddr4Cfg {
 
     pub const fn half_bl(&self) -> usize {
         self.bl() >> 1
-    }
-
-    pub const fn n_wr(&self, speed: &DdrSpeed) -> usize {
-        match self.speed_code(speed) {
-            0 => 6,
-            1 => 10,
-            2 => 16,
-            3 => 20,
-            4 => 24,
-            5 => 30,
-            6 => 34,
-            7 => 40,
-            _ => 6,
-        }
     }
 
     pub const fn rl(&self, speed: &DdrSpeed) -> usize {

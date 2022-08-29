@@ -5,8 +5,8 @@ use crate::hal::ddr::sdram::lpddr4::*;
 pub struct Umctl2Lpddr4TimingCfg {
     pub wl: u32,
     pub rl: u32,
-    pub n_wr: u32,
     pub half_bl: u32,
+    pub n_wr: u32,
     pub n_ras_min: u32,
     pub n_ras_max: u32,
     pub n_faw: u32,
@@ -38,8 +38,8 @@ impl Umctl2Lpddr4TimingCfg {
         Umctl2Lpddr4TimingCfg {
             wl: lpddr4_cfg.wl(speed) as u32,
             rl: lpddr4_cfg.rl(speed) as u32,
-            n_wr: lpddr4_cfg.n_wr(speed) as u32,
             half_bl: lpddr4_cfg.half_bl() as u32,
+            n_wr: lpddr4_timing.n_wr(tck),
             n_ras_min: lpddr4_timing.n_ras_min(tck),
             n_ras_max: lpddr4_timing.n_ras_max(tck),
             n_faw: lpddr4_timing.n_faw(tck),

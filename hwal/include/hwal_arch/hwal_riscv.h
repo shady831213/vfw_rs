@@ -18,20 +18,23 @@ extern void wait_mcycle(uint32_t cnt);
 
 #define read_csr(x) ({ \
     unsigned int r = 0; \
-    __asm__ __volatile__ ("csrrs %0, %1, x0" : "=r" (r) : "i"((x))); \
+    __asm__ volatile ("csrrs %0, %1, x0" : "=r" (r) : "i"((x))); \
     r; \
 })
 
-#define write_csr(x, v) { \
-    __asm__ __volatile__ ("csrrw x0, %1, %0" : "r" ((v)) : "i"((x))); \
-}
+#define write_csr(x, v) ({ \
+    unsigned int r = (v); \
+    __asm__ volatile ("csrrw x0, %1, %0" : "+r" (r) : "i"((x))); \
+})
 
 #define set_csr(x, v) { \
-    __asm__ __volatile__ ("csrrs x0, %1, %0" : "r" ((v)) : "i"((x))); \
+    unsigned int r = (v); \
+    __asm__ volatile ("csrrs x0, %1, %0" : "+r" (r) : "i"((x))); \
 }
 
 #define clr_csr(x, v) { \
-    __asm__ __volatile__ ("csrrc x0, %1, %0" : "r" ((v)) : "i"((x))); \
+    unsigned int r = (v); \
+    __asm__ volatile ("csrrc x0, %1, %0" : "+r" (r) : "i"((x))); \
 }
 
 typedef void* plic_t;

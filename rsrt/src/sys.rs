@@ -154,6 +154,33 @@ fn init_bss() {
     }
 }
 
+#[cfg(all(feature = "cpu_data_non_priv", feature = "max_cores_16"))]
+pub const PER_CPU_LEN: usize = 16;
+#[cfg(all(feature = "cpu_data_non_priv", feature = "max_cores_8"))]
+pub const PER_CPU_LEN: usize = 8;
+#[cfg(all(feature = "cpu_data_non_priv", feature = "max_cores_4"))]
+pub const PER_CPU_LEN: usize = 4;
+#[cfg(all(feature = "cpu_data_non_priv", feature = "max_cores_2"))]
+pub const PER_CPU_LEN: usize = 2;
+#[cfg(any(
+    not(feature = "cpu_data_non_priv"),
+    not(any(
+        feature = "max_cores_16",
+        feature = "max_cores_8",
+        feature = "max_cores_4",
+        feature = "max_cores_2"
+    ))
+))]
+pub const PER_CPU_LEN: usize = 1;
+
+pub fn per_cpu_offset() -> usize {
+    if PER_CPU_LEN > 1 {
+        hartid()
+    } else {
+        0
+    }
+}
+
 #[export_name = "rsrt_start"]
 fn rsrt_start() {
     use crate::hw_thread::idle;

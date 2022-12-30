@@ -5,7 +5,10 @@ pub mod rtapi;
 pub mod sbi;
 pub mod standard;
 pub mod trap;
-core::arch::global_asm!(include_str!("crt.S"));
+#[cfg(not(feature = "stack_non_priv"))]
+core::arch::global_asm!(include_str!("crt_priv_stack.S"));
+#[cfg(feature = "stack_non_priv")]
+core::arch::global_asm!(include_str!("crt_non_priv_stack.S"));
 #[macro_export]
 macro_rules! read_csr {
     ($csr_number:expr) => {

@@ -1,34 +1,10 @@
 extern crate mailbox_rs;
-use crate::rsrt::*;
 use core::fmt;
 pub use mailbox_rs::{mb_channel::*, mb_no_std::*, mb_rpcs::*};
-#[cfg(all(feature = "mb_multi", feature = "max_cores_16"))]
-const MBS: usize = 16;
-#[cfg(all(feature = "mb_multi", feature = "max_cores_8"))]
-const MBS: usize = 8;
-#[cfg(all(feature = "mb_multi", feature = "max_cores_4"))]
-const MBS: usize = 4;
-#[cfg(all(feature = "mb_multi", feature = "max_cores_2"))]
-const MBS: usize = 2;
-#[cfg(any(
-    not(feature = "mb_multi"),
-    not(any(
-        feature = "max_cores_16",
-        feature = "max_cores_8",
-        feature = "max_cores_4",
-        feature = "max_cores_2"
-    ))
-))]
-const MBS: usize = 1;
+use rsrt::*;
 
 #[link_section = ".mailbox_queue"]
-static mut MB_CH_RAW: [MBChannel; MBS] = [MBChannel::const_init(); MBS];
-
-pub fn mb_sender() -> MBNbRefSender<MBChannel> {
-    let id = if MBS > 1 { hartid() } else { 0 };
-
-    MBNbRefSender::new(unsafe { &mut MB_CH_RAW[id] })
-}
+static mut MB_CH_RAW: [MBChannel; PER_CPU_LEN] = [MBChannel::const_init(); PER_CPU_LEN];
 
 #[no_mangle]
 extern "C" fn __mb_save_flag() -> u32 {
@@ -40,6 +16,10 @@ extern "C" fn __mb_restore_flag(flag: u32) {
 }
 
 struct MBPrinter;
+
+pub fn mb_sender() -> MBNbRefSender<MBChannel> {
+    MBNbRefSender::new(unsafe { &mut MB_CH_RAW[per_cpu_offset()] })
+}
 
 impl fmt::Write for MBPrinter {
     fn write_str(&mut self, s: &str) -> fmt::Result {

@@ -1,12 +1,6 @@
 
 SECTIONS
-{
-    .stack (NOLOAD) : ALIGN(1K) {
-        _estack = .;
-        . += _stack_size;
-        _sstack = .;
-    } > REGION_STACK
-    
+{    
     .text : {
         _stext = .;
         /* Place init sections first */
@@ -80,3 +74,9 @@ SECTIONS
         *(.eh_frame .eh_frame_hdr,.riscv.attributes, .debug_*, .comment);
     }
 }
+
+ASSERT(_stack_size % 1K == 0, "
+ERROR: stack_size must be align with 1K.");
+
+ASSERT(_num_cores > 0, "
+ERROR: _num_cores must be at least 1.");

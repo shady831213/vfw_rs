@@ -2,6 +2,7 @@ use crate::arch::rv::riscv;
 #[cfg(all(not(feature = "full_panic"), feature = "mailbox_rs"))]
 use crate::cprintln;
 use riscv::register::{mcause, mepc, mtval};
+use rsrt::{per_cpu_offset, PER_CPU_LEN};
 
 #[cfg(target_pointer_width = "32")]
 core::arch::global_asm!(include_str!("rv32.S"));
@@ -70,7 +71,8 @@ impl TrapFrame {
             panic_msg!("invalid target %d", "invalid target {}", dst)
         }
         unsafe {
-            *((self as *mut TrapFrame as usize + (dst as usize) * core::mem::size_of::<usize>()) as *mut usize) = value
+            *((self as *mut TrapFrame as usize + (dst as usize) * core::mem::size_of::<usize>())
+                as *mut usize) = value
         }
     }
     pub fn get(&self, src: u8) -> usize {
@@ -78,7 +80,8 @@ impl TrapFrame {
             panic_msg!("invalid src %d", "invalid src {}", src)
         }
         unsafe {
-            *((self as *const TrapFrame as usize + (src as usize) * core::mem::size_of::<usize>()) as *const usize)
+            *((self as *const TrapFrame as usize + (src as usize) * core::mem::size_of::<usize>())
+                as *const usize)
         }
     }
 }
@@ -127,20 +130,27 @@ impl ExceptionVector {
 }
 
 pub fn default_trap_handler() {
-    panic_msg!("Unexpected trap: cause:%x, mepc:%x, mtval:%x", "Unexpected trap: cause:{:x}, mepc:{:x}, mtval:{:x}", mcause::read().bits(), mepc::read(), mtval::read());
+    panic_msg!(
+        "Unexpected trap: cause:%x, mepc:%x, mtval:%x",
+        "Unexpected trap: cause:{:x}, mepc:{:x}, mtval:{:x}",
+        mcause::read().bits(),
+        mepc::read(),
+        mtval::read()
+    );
 }
 
+const INT_VECTOR_LEN: usize = 12;
 
 #[no_mangle]
 extern "C" fn start_trap_rust(trap_frame: &mut TrapFrame) {
     unsafe {
         let cause = mcause::read();
         if cause.is_exception() {
-            __EXCEPTIONS.handle(trap_frame);
+            __EXCEPTIONS[per_cpu_offset()].handle(trap_frame);
         } else {
             let code = cause.code();
-            if code < __INTERRUPTS.len() {
-                let h = &__INTERRUPTS[code];
+            if code < INT_VECTOR_LEN {
+                let h = &__INTERRUPTS[per_cpu_offset()][code];
                 h.handle();
             } else {
                 default_trap_handler();
@@ -150,18 +160,20 @@ extern "C" fn start_trap_rust(trap_frame: &mut TrapFrame) {
 }
 
 pub unsafe fn register_exception_handler(f: unsafe extern "C" fn(trap_frame: &mut TrapFrame)) {
-    __EXCEPTIONS.handler = f;
+    __EXCEPTIONS[per_cpu_offset()].handler = f;
 }
 
 pub unsafe fn register_int_handler(cause: Interrupt, f: unsafe extern "C" fn()) {
     let code = cause as usize;
-    if code < __INTERRUPTS.len() {
-        __INTERRUPTS[code].handler = f;
+    if code < INT_VECTOR_LEN {
+        __INTERRUPTS[per_cpu_offset()][code].handler = f;
     }
 }
 
 #[link_section = ".cpu.bss"]
-static mut __INTERRUPTS: [InterruptVector; 12] = [const { InterruptVector { reserved: 0 } }; 12];
+static mut __INTERRUPTS: [[InterruptVector; INT_VECTOR_LEN]; PER_CPU_LEN] =
+    [const { [const { InterruptVector { reserved: 0 } }; INT_VECTOR_LEN] }; PER_CPU_LEN];
 
 #[link_section = ".cpu.bss"]
-static mut __EXCEPTIONS: ExceptionVector = ExceptionVector { reserved: 0 };
+static mut __EXCEPTIONS: [ExceptionVector; PER_CPU_LEN] =
+    [const { ExceptionVector { reserved: 0 } }; PER_CPU_LEN];

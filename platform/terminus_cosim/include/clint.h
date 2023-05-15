@@ -1,1 +1,0 @@
-#define CLINT_BASE 0x02000000

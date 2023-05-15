@@ -1,0 +1,33 @@
+[package]
+name = "vfw_core"
+version = "0.1.0"
+edition = "2021"
+links = "vfw_core"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+spin = { version = "0.9", optional = true }
+buddy_system_allocator = "0.9"
+vfw_primitives = {path = "../vfw_primitives"}
+
+[target.'cfg(any(target_arch = "riscv32", target_arch = "riscv64"))'.dependencies]
+riscv = { version = "0.10" }
+rustsbi = "0.2"
+
+[build-dependencies]
+vfw_build_utils = {git = "https://github.com/shady831213/vfw_build_utils"}
+serde = {version = "1", features = ["derive"]}
+
+[features]
+full_panic = []
+cpu_data_non_priv = []
+stack_non_priv = []
+max_cores_1 = []
+max_cores_2 = ["spin"]
+max_cores_4 = ["spin"]
+max_cores_8 = ["spin"]
+max_cores_16 = ["spin"]
+max_cores_32 = ["spin"]
+max_cores_64 = ["spin"]
+max_cores_128 = ["spin"]

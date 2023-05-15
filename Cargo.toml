@@ -17,7 +17,7 @@ vfw_mailbox = {path = "vfw_mailbox"}
 vfw_build_utils = {git = "https://github.com/shady831213/vfw_build_utils"}
 
 [features]
-full_panic = ["vfw_core/full_panic"]
+full_panic = ["vfw_primitives/full_panic"]
 cpu_data_non_priv = ["vfw_core/cpu_data_non_priv"]
 stack_non_priv = ["vfw_core/stack_non_priv"]
 max_cores_1 = ["vfw_core/max_cores_1"]

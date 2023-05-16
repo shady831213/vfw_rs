@@ -27,6 +27,12 @@ SECTIONS
         _erodata = .;
     } > REGION_RODATA
 
+    .got : {
+        _sgot = .;
+        *(.got .got.*);
+        _egot = .;
+    } > REGION_GOT
+    
     .bss : {
         _sbss = .;
         *(.bss .bss.* .sbss .sbss.*)

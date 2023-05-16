@@ -22,6 +22,7 @@ mailbox_rs = { git = "https://github.com/shady831213/mailbox_rs", features = ["n
 vfw_build_utils = {git = "https://github.com/shady831213/vfw_build_utils"}
 
 [features]
+reloc = []
 max_chs_1 = []
 max_chs_2 = []
 max_chs_4 = []

@@ -47,6 +47,48 @@ macro_rules! clr_csr {
     }
 }
 
+#[macro_export]
+macro_rules! relocation {
+    (mut $sym:ident:$t:ty) => {
+        unsafe {
+            #[cfg(all(feature="reloc", target_arch = "riscv64"))]
+            {
+                &mut *(crate::relocation!(@do_asm $sym) as *mut $t)
+            }
+            #[cfg(not(any(feature="reloc", target_arch = "riscv64")))]
+            {
+                &mut $sym
+            }
+        }
+    };
+    ($sym:ident:$t:ty) => {
+        unsafe {
+            #[cfg(all(feature="reloc", target_arch = "riscv64"))]
+            {
+                &const *(crate::relocation!(@do_asm $sym) as *const $t)
+            }
+            #[cfg(not(any(feature="reloc", target_arch = "riscv64")))]
+            {
+                &const $sym
+            }
+        }
+    };
+    (@do_asm $sym:ident) => {
+        {
+                let o: usize;
+                core::arch::asm!(
+                "
+            .option push
+            .option norelax
+            la {o},{i}
+            .option pop", i = sym $sym,
+                o = out(reg) o,
+                );
+                o
+        }
+    };
+}
+
 #[no_mangle]
 pub fn wait_mcycle(cnt: usize) {
     let cur = riscv::register::mcycle::read();

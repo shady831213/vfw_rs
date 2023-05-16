@@ -126,11 +126,11 @@ extern "C" fn start_trap_rust(trap_frame: &mut TrapFrame) {
     unsafe {
         let cause = mcause::read();
         if cause.is_exception() {
-            __EXCEPTIONS[per_cpu_offset()].handle(trap_frame);
+            expts()[per_cpu_offset()].handle(trap_frame);
         } else {
             let code = cause.code();
             if code < INT_VECTOR_LEN {
-                let h = &__INTERRUPTS[per_cpu_offset()][code];
+                let h = &interrupts()[per_cpu_offset()][code];
                 h.handle();
             } else {
                 default_trap_handler();
@@ -139,14 +139,24 @@ extern "C" fn start_trap_rust(trap_frame: &mut TrapFrame) {
     }
 }
 
+#[inline]
+fn expts() -> &'static mut [ExceptionVector] {
+    crate::relocation!(mut __EXCEPTIONS: [ExceptionVector; PER_CPU_LEN])
+}
+
+#[inline]
+fn interrupts() -> &'static mut [[InterruptVector; INT_VECTOR_LEN]] {
+    crate::relocation!(mut __INTERRUPTS: [[InterruptVector; INT_VECTOR_LEN]; PER_CPU_LEN])
+}
+
 pub unsafe fn register_exception_handler(f: unsafe extern "C" fn(trap_frame: &mut TrapFrame)) {
-    __EXCEPTIONS[per_cpu_offset()].handler = f;
+    expts()[per_cpu_offset()].handler = f;
 }
 
 pub unsafe fn register_int_handler(cause: Interrupt, f: unsafe extern "C" fn()) {
     let code = cause as usize;
     if code < INT_VECTOR_LEN {
-        __INTERRUPTS[per_cpu_offset()][code].handler = f;
+        interrupts()[per_cpu_offset()][code].handler = f;
     }
 }
 

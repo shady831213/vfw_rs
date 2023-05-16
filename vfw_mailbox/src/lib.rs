@@ -67,8 +67,25 @@ pub fn mb_sender() -> MBNbRefSender<MBChannel> {
     } else {
         0
     };
-
-    MBNbRefSender::new(unsafe { &mut MB_CH_RAW[id] })
+    MBNbRefSender::new(unsafe {
+        #[cfg(all(feature = "reloc", target_arch = "riscv64"))]
+        {
+            let o: usize;
+            core::arch::asm!(
+            "
+        .option push
+        .option norelax
+        la {o},{i}
+        .option pop", i = sym MB_CH_RAW,
+            o = out(reg) o,
+            );
+            &mut (&mut *(o as *mut [MBChannel; MBS]))[id]
+        }
+        #[cfg(not(any(feature = "reloc", target_arch = "riscv64")))]
+        {
+            &mut MB_CH_RAW[id]
+        }
+    })
 }
 
 impl fmt::Write for MBPrinter {

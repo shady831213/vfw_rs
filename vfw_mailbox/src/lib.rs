@@ -81,7 +81,7 @@ pub fn mb_sender() -> MBNbRefSender<MBChannel> {
             );
             &mut (&mut *(o as *mut [MBChannel; MBS]))[id]
         }
-        #[cfg(not(any(feature = "reloc", target_arch = "riscv64")))]
+        #[cfg(not(all(feature = "reloc", target_arch = "riscv64")))]
         {
             &mut MB_CH_RAW[id]
         }

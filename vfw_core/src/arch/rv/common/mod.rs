@@ -67,7 +67,7 @@ macro_rules! relocation {
             {
                 &const *(crate::relocation!(@do_asm $sym) as *const $t)
             }
-            #[cfg(not(any(feature="reloc", target_arch = "riscv64")))]
+            #[cfg(not(all(feature="reloc", target_arch = "riscv64")))]
             {
                 &const $sym
             }

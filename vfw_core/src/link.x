@@ -1,12 +1,6 @@
 
 SECTIONS
 {    
-    .stack (NOLOAD) : ALIGN(1K) {
-        _estack = .;
-        . += {{stack_size}};
-        _sstack = .;
-    } > REGION_STACK
-
     .text : {
         _stext = .;
         /* Place init sections first */
@@ -15,6 +9,12 @@ SECTIONS
         *(.text .text.*)
         _etext = .;
     } > REGION_TEXT
+
+    .stack (NOLOAD) : ALIGN(1K) {
+        _estack = .;
+        . += {{stack_size}};
+        _sstack = .;
+    } > REGION_STACK
 
     .rodata : {
         _srodata = .;
@@ -71,14 +71,16 @@ SECTIONS
 
     .heap (NOLOAD) : {
         _sheap = .;
-        . += _heap_size;
+        . += _heap_size - _provide_base;
         . = ALIGN(4);
         _eheap = .;
     } > REGION_HEAP
 }
 
-ASSERT(_stack_size % 1K == 0, "
+/* _provide_base is for R_RISCV_PCREL_HI20 issue like https://github.com/rust-embedded/riscv-rt/issues/107  */
+
+ASSERT((_stack_size - _provide_base) % 1K == 0, "
 ERROR: stack_size must be align with 1K.");
 
-ASSERT(_num_cores > 0, "
+ASSERT((_num_cores - _provide_base) > 0, "
 ERROR: _num_cores must be at least 1.");

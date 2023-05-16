@@ -10,6 +10,9 @@ _abs_start:
     la  sp, _estack
     lui t0, %hi(_stack_size)
     addi t0, t0, %lo(_stack_size)
+    lui t1, %hi(_provide_base)
+    addi t1, t1, %lo(_provide_base)
+    sub t0, t0, t1
     csrr t1, mhartid
     addi t1, t1,  1
 1:  add  sp, sp, t0

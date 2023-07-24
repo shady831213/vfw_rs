@@ -1,6 +1,6 @@
 SECTIONS
 {
-    .mailbox : {
+    .mailbox (NOLOAD) : {
         _smailbox = .;
         KEEP(*(.mailbox_queue));
         _emailbox = .;

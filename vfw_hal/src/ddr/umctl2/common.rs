@@ -21,10 +21,10 @@ pub trait Umctrl2MPhyV2: DdrDriver {
         io_read32!(self.phy_base() + reg)
     }
     fn set_phy_reg(&self, reg: usize, value: u32) {
-        self.write_phy_reg(reg, self.read_ctrl_reg(reg) | value)
+        self.write_phy_reg(reg, self.read_phy_reg(reg) | value)
     }
     fn clr_phy_reg(&self, reg: usize, value: u32) {
-        self.write_phy_reg(reg, self.read_ctrl_reg(reg) & !value)
+        self.write_phy_reg(reg, self.read_phy_reg(reg) & !value)
     }
     fn set_sw_done(&self) {
         self.write_ctrl_reg(UDDRC_SWCTL, 1);

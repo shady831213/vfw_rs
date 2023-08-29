@@ -99,3 +99,14 @@ pub fn wait_mcycle(cnt: usize) {
 pub fn mcycle() -> usize {
     riscv::register::mcycle::read()
 }
+
+#[no_mangle]
+pub fn wait_mcycle64(cnt: u64) {
+    let cur = riscv::register::mcycle::read64();
+    while riscv::register::mcycle::read64().wrapping_sub(cur) < cnt {}
+}
+
+#[no_mangle]
+pub fn mcycle64() -> u64 {
+    riscv::register::mcycle::read64()
+}

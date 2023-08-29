@@ -1,18 +1,34 @@
 #ifndef __VFW_RISCV_H__
 #define __VFW_RISCV_H__
 #include <stdint.h>
-extern uint32_t mcycle();
-extern void wait_mcycle(uint32_t cnt);
+extern uintptr_t mcycle();
+extern void wait_mcycle(uintptr_t cnt);
 
 #define wait_util(cond, cnt) ({ \
-    uint32_t cur = mcycle(); \
-    uint32_t timeout = 1; \
+    uintptr_t cur = mcycle(); \
+    uintptr_t timeout = 1; \
     do { \
         if ((cond)){ \
             timeout = 0; \
             break; \
         } \
     } while((mcycle() - cur) < (cnt)); \
+    timeout; \
+})
+
+extern uint64_t mcycle64();
+extern void wait_mcycle64(uint64_t cnt);
+
+
+#define wait_util64(cond, cnt) ({ \
+    uint64_t cur = mcycle64(); \
+    uint64_t timeout = 1; \
+    do { \
+        if ((cond)){ \
+            timeout = 0; \
+            break; \
+        } \
+    } while((mcycle64() - cur) < (cnt)); \
     timeout; \
 })
 

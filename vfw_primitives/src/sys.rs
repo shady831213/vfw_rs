@@ -11,28 +11,10 @@ pub extern "C" fn exit(code: u32) -> ! {
     unsafe { __exit(code) }
 }
 
-union PrintStrHandler {
-    handler: fn(s: &str),
-    reserved: usize,
-}
+#[linkage = "weak"]
+#[no_mangle]
+pub fn __print_str(_s: &str) {}
 
-#[link_section = ".synced.bss"]
-static mut PRINT_STR: PrintStrHandler = PrintStrHandler { reserved: 0 };
-
-pub fn init_print_str(f: fn(s: &str)) {
-    unsafe {
-        PRINT_STR.handler = f;
-    }
-}
-
-pub fn __print_str(s: &str) {
-    unsafe {
-        if PRINT_STR.reserved == 0 {
-            return;
-        }
-        (PRINT_STR.handler)(s)
-    }
-}
 pub fn __print(args: fmt::Arguments) {
     __print_str(&args.to_string())
 }

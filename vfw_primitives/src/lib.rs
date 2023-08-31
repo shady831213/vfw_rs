@@ -3,6 +3,7 @@
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 #![feature(linked_list_remove)]
+#![feature(linkage)]
 extern crate alloc;
 mod utils;
 pub use utils::*;

@@ -1,5 +1,8 @@
+#[cfg(feature = "alloc")]
 extern crate alloc;
+#[cfg(feature = "alloc")]
 use alloc::string::String;
+#[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 #[derive(Debug)]
 pub enum IoError {
@@ -29,6 +32,7 @@ pub trait Read {
         }
         Ok(())
     }
+    #[cfg(feature = "alloc")]
     fn read_until(&mut self, byte: u8, buf: &mut Vec<u8>) -> Result<usize> {
         let len = buf.len();
         loop {
@@ -41,6 +45,7 @@ pub trait Read {
         }
         Ok(buf.len() - len)
     }
+    #[cfg(feature = "alloc")]
     fn read_line(&mut self, buf: &mut String) -> Result<usize> {
         unsafe {
             let len = buf.len();

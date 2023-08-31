@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 vfw_primitives = {path = "../vfw_primitives"}
-vfw_utils = {path = "../vfw_utils"}
 spin = { version = "0.9" }
 nb = "1.1"
 embedded-hal = "0.2"

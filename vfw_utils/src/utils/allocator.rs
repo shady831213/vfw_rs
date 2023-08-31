@@ -1,7 +1,6 @@
 extern crate alloc;
 use alloc::collections::linked_list::LinkedList;
 use core::alloc::Layout;
-use vfw_primitives::*;
 
 #[repr(C)]
 #[derive(Copy, Clone)]

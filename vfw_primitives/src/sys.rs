@@ -1,4 +1,3 @@
-use alloc::string::ToString;
 use core::alloc::Layout;
 use core::fmt;
 use core::panic::PanicInfo;
@@ -15,8 +14,16 @@ pub extern "C" fn exit(code: u32) -> ! {
 #[no_mangle]
 pub fn __print_str(_s: &str) {}
 
+#[linkage = "weak"]
+#[no_mangle]
+pub fn __print_args(_args: &fmt::Arguments) {}
+
 pub fn __print(args: fmt::Arguments) {
-    __print_str(&args.to_string())
+    if let Some(s) = args.as_str() {
+        __print_str(s)
+    } else {
+        __print_args(&args);
+    }
 }
 
 #[macro_export]

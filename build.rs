@@ -5,6 +5,8 @@ fn main() {
         .unwrap()
         .add_dep("vfw_primitives")
         .unwrap()
+        .add_dep("vfw_utils")
+        .unwrap()
         .add_dep("vfw_core")
         .unwrap()
         .add_dep("vfw_mailbox")

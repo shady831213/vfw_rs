@@ -8,10 +8,10 @@ links = "vfw_rs"
 
 [dependencies]
 vfw_primitives = {path = "vfw_primitives"}
+vfw_utils = {path = "vfw_utils"}
 vfw_core = {path = "vfw_core"}
 vfw_hal = {path = "vfw_hal"}
 vfw_mailbox = {path = "vfw_mailbox"}
-
 
 [build-dependencies]
 vfw_build_utils = {git = "https://github.com/shady831213/vfw_build_utils"}

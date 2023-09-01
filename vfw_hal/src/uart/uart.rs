@@ -67,17 +67,11 @@ impl<C: 'static + Clk, const REG_SHIFT: usize> UartBase<C, REG_SHIFT> {
         let d2 = d + 1;
         //Choose best one
         let freq = d * baud_rate << 4;
-        let diff = if freq > ref_freq {
-            freq - ref_freq
-        } else {
-            ref_freq - freq
-        };
+        // freq <= ref_freq always
+        let diff = ref_freq - freq;
         let freq2 = d2 * baud_rate << 4;
-        let diff2 = if freq2 > ref_freq {
-            freq2 - ref_freq
-        } else {
-            ref_freq - freq2
-        };
+        // freq2 >= ref_freq always
+        let diff2 = freq2 - ref_freq;
 
         let (div, baud_real) = if diff < diff2 {
             (d, ref_freq / (d << 4))

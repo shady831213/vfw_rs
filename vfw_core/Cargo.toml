@@ -14,6 +14,7 @@ vfw_primitives = {path = "../vfw_primitives"}
 [target.'cfg(any(target_arch = "riscv32", target_arch = "riscv64"))'.dependencies]
 riscv = { version = "0.10" }
 rustsbi = "0.2"
+fast-trap = { version = "=0.0.1", features = ["riscv-m"] }
 
 [build-dependencies]
 vfw_build_utils = {git = "https://github.com/shady831213/vfw_build_utils"}

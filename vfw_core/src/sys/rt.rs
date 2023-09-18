@@ -1,9 +1,11 @@
 use super::arch::hartid;
 use crate::exit;
 use crate::hsm::HsmCell;
+use crate::hw_thread::Task;
 use crate::init_heap;
 use core::ptr::NonNull;
 use fast_trap::{FastContext, FastResult, FlowContext, FreeTrapStack};
+
 fn init_bss() {
     extern "C" {
         static mut _sbss: u8;
@@ -145,7 +147,6 @@ pub extern "C" fn stack_size() -> usize {
 
 #[export_name = "vfw_start"]
 fn vfw_start() {
-    use crate::hw_thread::idle;
     extern "C" {
         fn __boot_core_init();
     }
@@ -161,10 +162,10 @@ fn vfw_start() {
         // unsafe { __boot_core_init() };
         // let ret = unsafe { main() };
         // exit(ret);
-        unsafe { &mut CPU_CTXS[hartid] }
-            .hsm
-            .remote()
-            .start(Entry(__main as usize));
+        unsafe { &mut CPU_CTXS[hartid] }.hsm.remote().start(Task {
+            entry: __main as usize,
+            args: [0; 8],
+        });
     } else {
         Stack.load_as_stack();
         // idle()
@@ -192,15 +193,15 @@ extern "C" fn fast_handler(
     a7: usize,
 ) -> FastResult {
     #[inline]
-    fn boot(mut ctx: FastContext, start_addr: usize) -> FastResult {
-        ctx.regs().a[0] = hartid();
-        ctx.regs().pc = start_addr;
-        ctx.call(2)
+    fn boot(mut ctx: FastContext, task: &Task) -> FastResult {
+        ctx.regs().a[..task.args.len()].copy_from_slice(&task.args[..]);
+        ctx.regs().pc = task.entry;
+        ctx.call(task.args.len())
     }
     loop {
         match unsafe { &mut CPU_CTXS[hartid()].hsm.local().start() } {
-            Ok(entry) => {
-                break boot(ctx, entry.0);
+            Ok(task) => {
+                break boot(ctx, &task);
             }
             Err(crate::hsm::HsmState::Stopped) => {}
             _ => panic!("stopped with unsupported trap"),
@@ -208,11 +209,9 @@ extern "C" fn fast_handler(
     }
 }
 
-pub struct Entry(usize);
-
 pub struct HartContext {
     trap: FlowContext,
-    hsm: HsmCell<Entry>,
+    hsm: HsmCell<Task>,
 }
 
 impl HartContext {

@@ -144,7 +144,10 @@ pub extern "C" fn stack_size() -> usize {
 //         idle()
 //     }
 // }
-
+use riscv::register::{
+    mcause::{self, Exception as E, Trap as T},
+    mepc, mtval, mtvec, satp, sstatus,
+};
 #[export_name = "vfw_start"]
 fn vfw_start() {
     extern "C" {
@@ -171,6 +174,7 @@ fn vfw_start() {
         // idle()
     }
     unsafe {
+        mtvec::write(fast_trap::trap_entry as usize, mtvec::TrapMode::Direct);
         fast_trap::trap_entry();
     }
 }
@@ -182,7 +186,16 @@ fn __main() -> ! {
     let ret = unsafe { main() };
     exit(ret);
 }
-extern "C" fn fast_handler(
+
+#[no_mangle]
+fn __done() {
+    unsafe {
+        CPU_CTXS[hartid()].hsm.local().stop();
+        fast_trap::trap_entry();
+    }
+}
+
+pub extern "C" fn fast_handler(
     mut ctx: FastContext,
     a1: usize,
     a2: usize,
@@ -193,22 +206,90 @@ extern "C" fn fast_handler(
     a7: usize,
 ) -> FastResult {
     #[inline]
-    fn boot(mut ctx: FastContext, task: &Task) -> FastResult {
-        ctx.regs().a[..task.args.len()].copy_from_slice(&task.args[..]);
-        ctx.regs().pc = task.entry;
-        ctx.call(task.args.len())
+    fn boot(mut ctx: FastContext, hartid: usize, task: &Task) -> FastResult {
+        unsafe {
+            for i in 0..task.args.len() {
+                CPU_CTXS[hartid].trap.a[i] = task.args[i];
+            }
+            CPU_CTXS[hartid].trap.pc = task.entry;
+            CPU_CTXS[hartid].trap.sp = task.entry;
+            CPU_CTXS[hartid].trap.ra = __done as usize;
+            unsafe {
+                core::arch::asm!("csrr {sp}, mscratch
+                mv {gp}, gp
+                ", 
+                sp = out(reg) CPU_CTXS[hartid].trap.sp,
+                gp = out(reg) CPU_CTXS[hartid].trap.gp,
+                );
+            }
+            ctx.switch_to(CPU_CTXS[hartid].context_ptr())
+        }
     }
     loop {
         match unsafe { &mut CPU_CTXS[hartid()].hsm.local().start() } {
             Ok(task) => {
-                break boot(ctx, &task);
+                break boot(ctx, hartid(), &task);
             }
-            Err(crate::hsm::HsmState::Stopped) => {}
-            _ => panic!("stopped with unsupported trap"),
+            Err(crate::hsm::HsmState::Stopped) => {
+                crate::wait_ipi();
+            }
+            _ => {
+                match mcause::read().cause() {
+                    T::Exception(E::MachineEnvCall) => {
+                        //fork on other core
+                        let hart_target = a1;
+                        let entry = a2;
+                        let arg_len = a3;
+                        let args = a4;
+                        // crate::println!(
+                        //     "hart_target = {:#x}, entry= {:#x}, arg_len = {:#x}",
+                        //     hart_target,
+                        //     entry,
+                        //     arg_len
+                        // );
+                        let mut task = Task {
+                            entry,
+                            args: [0; 8],
+                        };
+                        for i in 0..arg_len {
+                            unsafe {
+                                task.args[i] =
+                                    *((args + i * core::mem::size_of::<usize>()) as *const usize)
+                            };
+                        }
+                        // crate::println!("begin fork");
+                        crate::send_ipi(hart_target).unwrap();
+                        let ret =
+                            unsafe { CPU_CTXS[hart_target].hsm.remote().start(task) as usize };
+                        ctx.regs().a[0] = ret;
+                        mepc::write(mepc::read().wrapping_add(4));
+                        break ctx.restore();
+                    }
+                    e => panic!(
+                        "stopped with unsupported trap {:?}, mepc = {:#x}",
+                        e,
+                        mepc::read()
+                    ),
+                }
+            }
         }
     }
 }
 
+pub fn new_try_fork_on(
+    _call: usize,
+    hart_target: usize,
+    entry: usize,
+    arg_len: usize,
+    args: &[usize],
+) -> bool {
+    unsafe {
+        let mut ret: usize = 0;
+        core::arch::asm!("ecall", in("a1") hart_target, in("a2") entry, in("a3") arg_len, in("a4") args.as_ptr() as usize, out("a0") ret,clobber_abi("C"),);
+        crate::println!("new_try_fork_on = {}", ret);
+        ret != 0
+    }
+}
 pub struct HartContext {
     trap: FlowContext,
     hsm: HsmCell<Task>,

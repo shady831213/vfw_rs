@@ -17,6 +17,7 @@ unsafe impl<T: Send> Sync for HsmCell<T> {}
 unsafe impl<T: Send> Send for HsmCell<T> {}
 
 // avoid to depend arch
+#[derive(Debug)]
 #[repr(usize)]
 pub enum HsmState {
     Started = 0,
@@ -80,8 +81,9 @@ impl<T> LocalHsmCell<'_, T> {
                     if s == HsmState::StartPendingExt as usize {
                         spin_loop()
                     } else {
+                        let state = HsmState::try_from(s).unwrap();
                         // TODO: handle illegel state
-                        break Err(HsmState::try_from(s).unwrap());
+                        break Err(state);
                     }
                 }
             }

@@ -67,7 +67,7 @@ impl<T> HsmCell<T> {
 
 impl<T> LocalHsmCell<'_, T> {
     #[inline]
-    pub fn start(&self) -> Result<T, usize> {
+    pub fn start(&self) -> Result<T, HsmState> {
         loop {
             match self.0.status.compare_exchange(
                 HsmState::StartPending as usize,
@@ -80,7 +80,8 @@ impl<T> LocalHsmCell<'_, T> {
                     if s == HsmState::StartPendingExt as usize {
                         spin_loop()
                     } else {
-                        break Err(s);
+                        // TODO: handle illegel state
+                        break Err(HsmState::try_from(s).unwrap());
                     }
                 }
             }

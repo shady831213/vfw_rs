@@ -43,6 +43,7 @@ _abs_start:
     la  gp, __global_pointer$
     .option pop
     la  sp, _sstack
+    call reuse_stack_for_trap
     j vfw_start
 
 _start_abort:

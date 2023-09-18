@@ -4,6 +4,7 @@
 #![feature(inline_const)]
 #![feature(generic_const_exprs)]
 #![feature(asm_const)]
+#![feature(naked_functions)]
 extern crate alloc;
 pub mod arch;
 mod heap;

@@ -53,6 +53,7 @@ _abs_start:
 1:  add  sp, sp, t0
     addi t1, t1, -1
     bnez t1, 1b
+    call reuse_stack_for_trap
     j vfw_start
 
 _start_abort:

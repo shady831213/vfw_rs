@@ -75,28 +75,36 @@ impl Stack {
     }
 
     fn end(&self) -> usize {
-        self.start() + self.size()
+        self.start() - self.size()
     }
 
     fn load_as_stack(&self) {
-        // extern "C" {
-        //     fn fast_handler(
-        //         mut ctx: FastContext,
-        //         a1: usize,
-        //         a2: usize,
-        //         a3: usize,
-        //         a4: usize,
-        //         a5: usize,
-        //         a6: usize,
-        //         a7: usize,
-        //     ) -> FastResult;
-        // }
+        unsafe {
+            let mut sp: usize = 0;
+            core::arch::asm!("mv {sp}, sp", sp = out(reg) sp);
+            crate::println!(
+                "sp = {:#x}, start = {:#x}, end = {:#x}",
+                sp,
+                self.start(),
+                self.end()
+            );
+        }
         let context_ptr = unsafe { &mut CPU_CTXS[hartid()] }.context_ptr();
         core::mem::forget(
-            FreeTrapStack::new(self.start()..self.end(), |_| {}, context_ptr, fast_handler)
+            FreeTrapStack::new(self.end()..self.start(), |_| {}, context_ptr, fast_handler)
                 .unwrap()
                 .load(),
         );
+        //save clean sp and gp to contex
+        unsafe {
+            core::arch::asm!("
+            csrr {sp}, mscratch
+            mv {gp}, gp
+            ", 
+            sp = out(reg) CPU_CTXS[hartid()].trap.sp,
+            gp = out(reg) CPU_CTXS[hartid()].trap.gp,
+            );
+        }
     }
 }
 
@@ -105,7 +113,7 @@ pub extern "C" fn stack_start() -> usize {
     let m_sstack = unsafe { &mut _sstack } as *mut _ as usize;
     #[cfg(feature = "stack_non_priv")]
     {
-        m_sstack + stack_size() * hartid()
+        m_sstack - stack_size() * hartid()
     }
     #[cfg(not(feature = "stack_non_priv"))]
     {
@@ -212,16 +220,7 @@ pub extern "C" fn fast_handler(
                 CPU_CTXS[hartid].trap.a[i] = task.args[i];
             }
             CPU_CTXS[hartid].trap.pc = task.entry;
-            CPU_CTXS[hartid].trap.sp = task.entry;
             CPU_CTXS[hartid].trap.ra = __done as usize;
-            unsafe {
-                core::arch::asm!("csrr {sp}, mscratch
-                mv {gp}, gp
-                ", 
-                sp = out(reg) CPU_CTXS[hartid].trap.sp,
-                gp = out(reg) CPU_CTXS[hartid].trap.gp,
-                );
-            }
             ctx.switch_to(CPU_CTXS[hartid].context_ptr())
         }
     }

@@ -97,13 +97,15 @@ impl Stack {
         );
         //save clean sp and gp to contex
         unsafe {
+            let hartid = hartid();
             core::arch::asm!("
             csrr {sp}, mscratch
             mv {gp}, gp
             ", 
-            sp = out(reg) CPU_CTXS[hartid()].trap.sp,
-            gp = out(reg) CPU_CTXS[hartid()].trap.gp,
+            sp = out(reg) CPU_CTXS[hartid].trap.sp,
+            gp = out(reg) CPU_CTXS[hartid].trap.gp,
             );
+            CPU_CTXS[hartid].trap.ra = __done as usize;
         }
     }
 }
@@ -182,7 +184,6 @@ fn vfw_start() {
         // idle()
     }
     unsafe {
-        mtvec::write(fast_trap::trap_entry as usize, mtvec::TrapMode::Direct);
         fast_trap::trap_entry();
     }
 }
@@ -203,6 +204,8 @@ fn __done() {
     }
 }
 
+const VFW_CALL: usize = 10;
+
 pub extern "C" fn fast_handler(
     mut ctx: FastContext,
     a1: usize,
@@ -217,12 +220,10 @@ pub extern "C" fn fast_handler(
     fn boot(mut ctx: FastContext, hartid: usize, task: &Task) -> FastResult {
         unsafe {
             mstatus::set_mpp(mstatus::MPP::Machine);
-
             for i in 0..task.args.len() {
                 CPU_CTXS[hartid].trap.a[i] = task.args[i];
             }
             CPU_CTXS[hartid].trap.pc = task.entry;
-            CPU_CTXS[hartid].trap.ra = __done as usize;
             ctx.switch_to(CPU_CTXS[hartid].context_ptr())
         }
     }
@@ -235,8 +236,9 @@ pub extern "C" fn fast_handler(
                 crate::wait_ipi();
             }
             _ => {
-                match mcause::read().cause() {
-                    T::Exception(E::MachineEnvCall) => {
+                let cause = mcause::read();
+                match cause.cause() {
+                    T::Exception(E::Unknown) if cause.bits() == VFW_CALL => {
                         //fork on other core
                         let hart_target = a1;
                         let entry = a2;
@@ -263,7 +265,9 @@ pub extern "C" fn fast_handler(
                         let ret =
                             unsafe { CPU_CTXS[hart_target].hsm.remote().start(task) as usize };
                         ctx.regs().a[0] = ret;
-                        mepc::write(mepc::read().wrapping_add(4));
+                        unsafe {
+                            mstatus::set_mpp(mstatus::MPP::Machine);
+                        }
                         break ctx.restore();
                     }
                     e => panic!(
@@ -278,15 +282,29 @@ pub extern "C" fn fast_handler(
 }
 
 pub fn new_try_fork_on(
-    _call: usize,
+    call: usize,
     hart_target: usize,
     entry: usize,
     arg_len: usize,
     args: &[usize],
 ) -> bool {
+    let hartid = hartid();
     unsafe {
-        let mut ret: usize = 0;
-        core::arch::asm!("ecall", in("a1") hart_target, in("a2") entry, in("a3") arg_len, in("a4") args.as_ptr() as usize, out("a0") ret,clobber_abi("C"),);
+        let mut ret: usize = call;
+        core::arch::asm!(
+            "   la   {0},    1f
+                csrw mepc,   {0}
+                csrw mcause, {cause}
+                j    {trap}
+             1:
+            ",
+            out(reg) _,
+            inout("a0") ret,
+            in("a1") hart_target, in("a2") entry, in("a3") arg_len, in("a4") args.as_ptr() as usize,
+            cause = in(reg) VFW_CALL,
+            trap  = sym fast_trap::trap_entry,
+        );
+        // core::arch::asm!("ecall", in("a1") hart_target, in("a2") entry, in("a3") arg_len, in("a4") args.as_ptr() as usize, out("a0") ret,clobber_abi("C"),);
         crate::println!("new_try_fork_on = {}", ret);
         ret != 0
     }

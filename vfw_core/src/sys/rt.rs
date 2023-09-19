@@ -154,7 +154,7 @@ pub extern "C" fn stack_size() -> usize {
 // }
 use riscv::register::{
     mcause::{self, Exception as E, Trap as T},
-    mepc, mtval, mtvec, satp, sstatus,
+    mepc, mstatus, mtval, mtvec,
 };
 #[export_name = "vfw_start"]
 fn vfw_start() {
@@ -216,6 +216,8 @@ pub extern "C" fn fast_handler(
     #[inline]
     fn boot(mut ctx: FastContext, hartid: usize, task: &Task) -> FastResult {
         unsafe {
+            mstatus::set_mpp(mstatus::MPP::Machine);
+
             for i in 0..task.args.len() {
                 CPU_CTXS[hartid].trap.a[i] = task.args[i];
             }

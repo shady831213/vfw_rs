@@ -3,6 +3,29 @@
 pub struct Task {
     pub entry: usize,
     pub args: [usize; 8],
+    pub task_id: TaskId,
+}
+
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct TaskId(u32);
+impl TaskId {
+    pub const fn new(hart_id: u16, task_id: u16) -> Self {
+        TaskId((hart_id as u32) | ((task_id as u32) << 16))
+    }
+    pub const fn from_u32(raw: u32) -> Self {
+        TaskId(raw)
+    }
+
+    pub fn task_id(&self) -> u16 {
+        (self.0 >> 16) as u16
+    }
+    pub fn hart_id(&self) -> u16 {
+        self.0 as u16
+    }
+    pub fn raw(&self) -> u32 {
+        self.0
+    }
 }
 
 #[cfg(any(
@@ -15,7 +38,7 @@ pub struct Task {
     feature = "max_cores_2"
 ))]
 mod hw_thread_imp {
-    use super::Task;
+    use super::*;
     use crate::sys::*;
     use spin::Mutex;
     #[cfg(feature = "max_cores_2")]
@@ -237,6 +260,7 @@ mod hw_thread_imp {
             let mut task = Task {
                 entry,
                 args: [0; 8],
+                task_id: TaskId::new(0, 0),
             };
             for i in 0..args_len {
                 task.args[i] = unsafe {

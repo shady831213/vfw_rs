@@ -1,11 +1,11 @@
 use super::arch::hartid;
 use crate::exit;
 use crate::hsm::HsmCell;
-use crate::hw_thread::Task;
+use crate::hw_thread::{Task, TaskId};
 use crate::init_heap;
 use core::ptr::NonNull;
+use core::sync::atomic::{AtomicU16, Ordering};
 use fast_trap::{FastContext, FastResult, FlowContext, FreeTrapStack};
-
 fn init_bss() {
     extern "C" {
         static mut _sbss: u8;
@@ -79,16 +79,6 @@ impl Stack {
     }
 
     fn load_as_stack(&self) {
-        unsafe {
-            let mut sp: usize = 0;
-            core::arch::asm!("mv {sp}, sp", sp = out(reg) sp);
-            crate::println!(
-                "sp = {:#x}, start = {:#x}, end = {:#x}",
-                sp,
-                self.start(),
-                self.end()
-            );
-        }
         let context_ptr = unsafe { &mut CPU_CTXS[hartid()] }.context_ptr();
         core::mem::forget(
             FreeTrapStack::new(self.end()..self.start(), |_| {}, context_ptr, fast_handler)
@@ -99,13 +89,10 @@ impl Stack {
         unsafe {
             let hartid = hartid();
             core::arch::asm!("
-            csrr {sp}, mscratch
             mv {gp}, gp
             ", 
-            sp = out(reg) CPU_CTXS[hartid].trap.sp,
             gp = out(reg) CPU_CTXS[hartid].trap.gp,
             );
-            CPU_CTXS[hartid].trap.ra = __done as usize;
         }
     }
 }
@@ -156,7 +143,7 @@ pub extern "C" fn stack_size() -> usize {
 // }
 use riscv::register::{
     mcause::{self, Exception as E, Trap as T},
-    mepc, mstatus, mtval, mtvec,
+    mepc, mstatus,
 };
 #[export_name = "vfw_start"]
 fn vfw_start() {
@@ -172,16 +159,9 @@ fn vfw_start() {
         init_bss();
         init_heap();
         Stack.load_as_stack();
-        // unsafe { __boot_core_init() };
-        // let ret = unsafe { main() };
-        // exit(ret);
-        unsafe { &mut CPU_CTXS[hartid] }.hsm.remote().start(Task {
-            entry: __main as usize,
-            args: [0; 8],
-        });
+        new_try_fork_on(0, __main as usize, 0, &[]);
     } else {
         Stack.load_as_stack();
-        // idle()
     }
     unsafe {
         fast_trap::trap_entry();
@@ -205,9 +185,22 @@ fn __done() {
 }
 
 const VFW_CALL: usize = 10;
+#[repr(usize)]
+enum VfwCall {
+    Fork = 0,
+}
 
+impl core::convert::TryFrom<usize> for VfwCall {
+    type Error = usize;
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(VfwCall::Fork),
+            v => Err(v),
+        }
+    }
+}
 pub extern "C" fn fast_handler(
-    mut ctx: FastContext,
+    ctx: FastContext,
     a1: usize,
     a2: usize,
     a3: usize,
@@ -217,13 +210,28 @@ pub extern "C" fn fast_handler(
     a7: usize,
 ) -> FastResult {
     #[inline]
-    fn boot(mut ctx: FastContext, hartid: usize, task: &Task) -> FastResult {
+    fn boot(ctx: FastContext, hartid: usize, task: &Task) -> FastResult {
         unsafe {
             mstatus::set_mpp(mstatus::MPP::Machine);
             for i in 0..task.args.len() {
                 CPU_CTXS[hartid].trap.a[i] = task.args[i];
             }
             CPU_CTXS[hartid].trap.pc = task.entry;
+            CPU_CTXS[hartid].trap.ra = __done as usize;
+            // ------------------
+            // | app stack      |  -
+            // ------------------   |
+            // | fast stack     |   | - stack
+            // ------------------   |
+            // | handler struct |  -
+
+            // this sp including handler sturct + fast stack automatically
+            core::arch::asm!("
+                mv {sp}, sp
+                ", 
+            sp = out(reg) CPU_CTXS[hartid].trap.sp,
+            );
+            CPU_CTXS[hartid].current = task.task_id;
             ctx.switch_to(CPU_CTXS[hartid].context_ptr())
         }
     }
@@ -232,86 +240,170 @@ pub extern "C" fn fast_handler(
             Ok(task) => {
                 break boot(ctx, hartid(), &task);
             }
-            Err(crate::hsm::HsmState::Stopped) => {
-                crate::wait_ipi();
-            }
-            _ => {
+            Err(state) => {
                 let cause = mcause::read();
                 match cause.cause() {
                     T::Exception(E::Unknown) if cause.bits() == VFW_CALL => {
-                        //fork on other core
-                        let hart_target = a1;
-                        let entry = a2;
-                        let arg_len = a3;
-                        let args = a4;
-                        // crate::println!(
-                        //     "hart_target = {:#x}, entry= {:#x}, arg_len = {:#x}",
-                        //     hart_target,
-                        //     entry,
-                        //     arg_len
-                        // );
-                        let mut task = Task {
-                            entry,
-                            args: [0; 8],
-                        };
-                        for i in 0..arg_len {
-                            unsafe {
-                                task.args[i] =
-                                    *((args + i * core::mem::size_of::<usize>()) as *const usize)
-                            };
-                        }
-                        // crate::println!("begin fork");
-                        crate::send_ipi(hart_target).unwrap();
-                        let ret =
-                            unsafe { CPU_CTXS[hart_target].hsm.remote().start(task) as usize };
-                        ctx.regs().a[0] = ret;
                         unsafe {
                             mstatus::set_mpp(mstatus::MPP::Machine);
                         }
-                        break ctx.restore();
+                        break vfw_call_handler(ctx, a1, a2, a3, a4, a5, a6, a7);
                     }
-                    e => panic!(
-                        "stopped with unsupported trap {:?}, mepc = {:#x}",
-                        e,
-                        mepc::read()
-                    ),
+                    e => match state {
+                        crate::hsm::HsmState::Stopped => {
+                            crate::wait_ipi();
+                        }
+                        _ => panic!(
+                            "stopped with unsupported trap {:?}, mepc = {:#x}",
+                            e,
+                            mepc::read()
+                        ),
+                    },
                 }
             }
         }
     }
 }
-
-pub fn new_try_fork_on(
-    call: usize,
+fn vfw_call_handler(
+    ctx: FastContext,
+    a1: usize,
+    a2: usize,
+    a3: usize,
+    a4: usize,
+    a5: usize,
+    a6: usize,
+    a7: usize,
+) -> FastResult {
+    let hartid = hartid();
+    match VfwCall::try_from(ctx.a0()) {
+        Ok(VfwCall::Fork) => try_fork_on_call(ctx, a1, a2, a3, a4, a5, hartid),
+        Err(e) => panic!("Invalid VfwCall {}", e),
+    }
+}
+fn try_fork_on_call(
+    mut ctx: FastContext,
+    a1: usize,
+    a2: usize,
+    a3: usize,
+    a4: usize,
+    a5: usize,
+    hartid: usize,
+) -> FastResult {
+    //fork on other core
+    let hart_target = a1;
+    let task_id = a2 as u16;
+    let entry = a3;
+    let arg_len = a4;
+    let args = a5;
+    let mut task = Task {
+        entry,
+        args: [0; 8],
+        task_id: TaskId::new(hartid as u16, task_id),
+    };
+    for i in 0..arg_len {
+        unsafe { task.args[i] = *((args + i * core::mem::size_of::<usize>()) as *const usize) };
+    }
+    crate::send_ipi(hart_target).unwrap();
+    let ret = unsafe { CPU_CTXS[hart_target].hsm.remote().start(task) as usize };
+    ctx.regs().a[0] = ret as usize;
+    ctx.restore()
+}
+//should be moved into arch
+fn try_fork_on(
     hart_target: usize,
+    task_id: u16,
     entry: usize,
     arg_len: usize,
     args: &[usize],
-) -> bool {
-    let hartid = hartid();
+) -> Option<TaskId> {
     unsafe {
-        let mut ret: usize = call;
+        let mut ret: usize = VfwCall::Fork as usize;
         core::arch::asm!(
-            "   la   {0},    1f
-                csrw mepc,   {0}
+            "   la   t0,    1f
+                csrw mepc,   t0
                 csrw mcause, {cause}
                 j    {trap}
              1:
             ",
-            out(reg) _,
+            out("t0") _,
             inout("a0") ret,
-            in("a1") hart_target, in("a2") entry, in("a3") arg_len, in("a4") args.as_ptr() as usize,
+            in("a1") hart_target, in("a2") task_id as usize, in("a3") entry, in("a4") arg_len, in("a5") args.as_ptr() as usize,
             cause = in(reg) VFW_CALL,
             trap  = sym fast_trap::trap_entry,
+            clobber_abi("C"),
         );
-        // core::arch::asm!("ecall", in("a1") hart_target, in("a2") entry, in("a3") arg_len, in("a4") args.as_ptr() as usize, out("a0") ret,clobber_abi("C"),);
-        crate::println!("new_try_fork_on = {}", ret);
-        ret != 0
+        if ret == 0 {
+            None
+        } else {
+            Some(TaskId::new(hart_target as u16, task_id))
+        }
+    }
+}
+
+pub fn new_try_fork_on(
+    hart_target: usize,
+    entry: usize,
+    arg_len: usize,
+    args: &[usize],
+) -> Option<TaskId> {
+    try_fork_on(
+        hart_target,
+        HW_TIDS.fetch_add(1, Ordering::SeqCst),
+        entry,
+        arg_len,
+        args,
+    )
+}
+
+pub fn new_fork_on(hart_target: usize, entry: usize, arg_len: usize, args: &[usize]) -> TaskId {
+    let task_id = HW_TIDS.fetch_add(1, Ordering::SeqCst);
+    loop {
+        if let Some(id) = try_fork_on(hart_target, task_id, entry, arg_len, args) {
+            break id;
+        }
+        core::hint::spin_loop();
+    }
+}
+
+pub fn new_fork(entry: usize, arg_len: usize, args: &[usize]) -> TaskId {
+    let task_id = HW_TIDS.fetch_add(1, Ordering::SeqCst);
+    loop {
+        for i in 1..crate::num_cores() {
+            if let Some(id) = try_fork_on(i, task_id, entry, arg_len, args) {
+                return id;
+            }
+        }
+        core::hint::spin_loop();
+    }
+}
+
+//should be moved into arch
+pub fn new_join(id: TaskId) {
+    #[inline]
+    fn finished(issued: u16, retired: u16) -> bool {
+        if (issued >> 15) != (retired >> 15) {
+            retired <= issued
+        } else {
+            retired >= issued
+        }
+    }
+    unsafe {
+        loop {
+            let ctx = &mut CPU_CTXS[id.hart_id() as usize];
+            if ctx.hsm.remote().get_status().expect("Invalid State!")
+                == crate::hsm::HsmState::Stopped
+                && finished(id.task_id(), ctx.current.task_id())
+            {
+                break;
+            }
+            core::hint::spin_loop();
+        }
     }
 }
 pub struct HartContext {
     trap: FlowContext,
     hsm: HsmCell<Task>,
+    current: TaskId,
 }
 
 impl HartContext {
@@ -319,11 +411,8 @@ impl HartContext {
         HartContext {
             trap: FlowContext::ZERO,
             hsm: HsmCell::new(),
+            current: TaskId::new(0, 0),
         }
-    }
-    #[inline]
-    fn init(&mut self) {
-        self.hsm = HsmCell::new();
     }
 
     #[inline]
@@ -349,3 +438,5 @@ const MAX_CORES: usize = 128;
 
 #[link_section = ".synced.bss"]
 static mut CPU_CTXS: [HartContext; MAX_CORES] = [const { HartContext::new() }; MAX_CORES];
+#[link_section = ".synced.bss"]
+static HW_TIDS: AtomicU16 = AtomicU16::new(0);

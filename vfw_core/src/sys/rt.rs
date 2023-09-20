@@ -188,6 +188,7 @@ const VFW_CALL: usize = 10;
 #[repr(usize)]
 enum VfwCall {
     Fork = 0,
+    Join,
 }
 
 impl core::convert::TryFrom<usize> for VfwCall {
@@ -195,6 +196,7 @@ impl core::convert::TryFrom<usize> for VfwCall {
     fn try_from(value: usize) -> Result<Self, Self::Error> {
         match value {
             0 => Ok(VfwCall::Fork),
+            1 => Ok(VfwCall::Join),
             v => Err(v),
         }
     }
@@ -276,11 +278,12 @@ fn vfw_call_handler(
 ) -> FastResult {
     let hartid = hartid();
     match VfwCall::try_from(ctx.a0()) {
-        Ok(VfwCall::Fork) => try_fork_on_call(ctx, a1, a2, a3, a4, a5, hartid),
+        Ok(VfwCall::Fork) => fork_call(ctx, a1, a2, a3, a4, a5, hartid),
+        Ok(VfwCall::Join) => join_call(ctx, a1),
         Err(e) => panic!("Invalid VfwCall {}", e),
     }
 }
-fn try_fork_on_call(
+fn fork_call(
     mut ctx: FastContext,
     a1: usize,
     a2: usize,
@@ -308,6 +311,32 @@ fn try_fork_on_call(
     ctx.regs().a[0] = ret as usize;
     ctx.restore()
 }
+
+fn join_call(ctx: FastContext, a1: usize) -> FastResult {
+    #[inline]
+    fn finished(issued: u16, retired: u16) -> bool {
+        if (issued >> 15) != (retired >> 15) {
+            retired <= issued
+        } else {
+            retired >= issued
+        }
+    }
+    let id = TaskId::from_u32(a1 as u32);
+    unsafe {
+        let cpu = &mut CPU_CTXS[id.hart_id() as usize];
+        loop {
+            if cpu.hsm.remote().get_status().expect("Invalid State!")
+                == crate::hsm::HsmState::Stopped
+                && finished(id.task_id(), cpu.current.task_id())
+            {
+                break;
+            }
+            core::hint::spin_loop();
+        }
+    }
+    ctx.restore()
+}
+
 //should be moved into arch
 fn try_fork_on(
     hart_target: usize,
@@ -379,25 +408,21 @@ pub fn new_fork(entry: usize, arg_len: usize, args: &[usize]) -> TaskId {
 
 //should be moved into arch
 pub fn new_join(id: TaskId) {
-    #[inline]
-    fn finished(issued: u16, retired: u16) -> bool {
-        if (issued >> 15) != (retired >> 15) {
-            retired <= issued
-        } else {
-            retired >= issued
-        }
-    }
     unsafe {
-        loop {
-            let ctx = &mut CPU_CTXS[id.hart_id() as usize];
-            if ctx.hsm.remote().get_status().expect("Invalid State!")
-                == crate::hsm::HsmState::Stopped
-                && finished(id.task_id(), ctx.current.task_id())
-            {
-                break;
-            }
-            core::hint::spin_loop();
-        }
+        core::arch::asm!(
+            "   la   t0,    1f
+                csrw mepc,   t0
+                csrw mcause, {cause}
+                j    {trap}
+             1:
+            ",
+            out("t0") _,
+            in("a0") VfwCall::Join as usize,
+            in("a1") id.raw() as usize,
+            cause = in(reg) VFW_CALL,
+            trap  = sym fast_trap::trap_entry,
+            clobber_abi("C"),
+        );
     }
 }
 pub struct HartContext {

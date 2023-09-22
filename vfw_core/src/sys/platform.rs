@@ -1,8 +1,28 @@
-use super::arch::num_cores;
+use crate::num_cores;
 extern "C" {
+    fn __save_flag() -> usize;
+    fn __restore_flag(flag: usize);
+    fn __mem_wb(start: usize, size: usize);
+    fn __mem_flush(start: usize, size: usize);
+    fn __mem_invalid(start: usize, size: usize);
     fn __send_ipi(hart_id: usize);
     fn __clear_ipi(hart_id: usize);
     fn __wait_ipi();
+}
+
+#[no_mangle]
+pub extern "C" fn mem_wb(start: usize, size: usize) {
+    unsafe { __mem_wb(start, size) }
+}
+
+#[no_mangle]
+pub extern "C" fn mem_flush(start: usize, size: usize) {
+    unsafe { __mem_flush(start, size) }
+}
+
+#[no_mangle]
+pub extern "C" fn mem_invalid(start: usize, size: usize) {
+    unsafe { __mem_invalid(start, size) }
 }
 
 pub fn wait_ipi() {

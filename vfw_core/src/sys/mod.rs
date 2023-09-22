@@ -1,6 +1,4 @@
-mod arch;
-mod ipi;
+mod platform;
 mod rt;
-pub use arch::*;
-pub use ipi::*;
+pub use platform::*;
 pub use rt::*;

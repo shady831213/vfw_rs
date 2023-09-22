@@ -1,11 +1,39 @@
-use super::arch::hartid;
+use crate::arch::arch;
 use crate::exit;
 use crate::hsm::HsmCell;
 use crate::hw_thread::{Task, TaskId};
 use crate::init_heap;
+use crate::Stack;
 use core::ptr::NonNull;
 use core::sync::atomic::{AtomicU16, Ordering};
 use fast_trap::FlowContext;
+
+#[no_mangle]
+pub extern "C" fn num_cores() -> usize {
+    extern "C" {
+        static _num_cores: u8;
+        static _provide_base: usize;
+    }
+    let m_num_cores = (unsafe { &_num_cores }) as *const u8 as usize;
+    let m_provide_base = unsafe { &_provide_base } as *const usize as usize;
+    m_num_cores - m_provide_base
+}
+
+#[no_mangle]
+pub extern "C" fn hartid() -> usize {
+    arch::hartid()
+}
+
+#[no_mangle]
+pub extern "C" fn save_flag() -> usize {
+    arch::save_flag()
+}
+
+#[no_mangle]
+pub extern "C" fn restore_flag(flag: usize) {
+    arch::restore_flag(flag)
+}
+
 fn init_bss() {
     extern "C" {
         static mut _sbss: u8;
@@ -84,6 +112,8 @@ fn vfw_start() {
     extern "C" {
         fn __pre_init();
     }
+    Stack.load_as_stack(arch::fast_handler);
+    arch::init_fast_trap();
     unsafe { __pre_init() };
     let hartid = hartid();
     if hartid == 0 {
@@ -111,6 +141,7 @@ impl core::convert::TryFrom<usize> for VfwCall {
         }
     }
 }
+
 #[inline(always)]
 pub(crate) fn vfw_call(a: &mut [usize; 8]) -> usize {
     let hartid = hartid();
@@ -184,30 +215,6 @@ pub fn per_cpu_offset() -> usize {
         0
     }
 }
-#[inline]
-fn try_fork_on_wrapper(
-    hart_target: usize,
-    task_id: u16,
-    entry: usize,
-    arg_len: usize,
-    args: &[usize],
-) -> Option<TaskId> {
-    extern "C" {
-        fn try_fork_on(
-            hart_target: usize,
-            task_id: u16,
-            entry: usize,
-            arg_len: usize,
-            args: *const usize,
-        ) -> usize;
-    }
-    let ret = unsafe { try_fork_on(hart_target, task_id, entry, arg_len, args.as_ptr()) };
-    if ret == 0 {
-        None
-    } else {
-        Some(TaskId::new(hart_target as u16, task_id))
-    }
-}
 
 pub fn new_try_fork_on(
     hart_target: usize,
@@ -215,7 +222,7 @@ pub fn new_try_fork_on(
     arg_len: usize,
     args: &[usize],
 ) -> Option<TaskId> {
-    try_fork_on_wrapper(
+    arch::try_fork_on(
         hart_target,
         HW_TIDS.fetch_add(1, Ordering::SeqCst),
         entry,
@@ -227,7 +234,7 @@ pub fn new_try_fork_on(
 pub fn new_fork_on(hart_target: usize, entry: usize, arg_len: usize, args: &[usize]) -> TaskId {
     let task_id = HW_TIDS.fetch_add(1, Ordering::SeqCst);
     loop {
-        if let Some(id) = try_fork_on_wrapper(hart_target, task_id, entry, arg_len, args) {
+        if let Some(id) = arch::try_fork_on(hart_target, task_id, entry, arg_len, args) {
             break id;
         }
         core::hint::spin_loop();
@@ -238,12 +245,16 @@ pub fn new_fork(entry: usize, arg_len: usize, args: &[usize]) -> TaskId {
     let task_id = HW_TIDS.fetch_add(1, Ordering::SeqCst);
     loop {
         for i in 1..crate::num_cores() {
-            if let Some(id) = try_fork_on_wrapper(i, task_id, entry, arg_len, args) {
+            if let Some(id) = arch::try_fork_on(i, task_id, entry, arg_len, args) {
                 return id;
             }
         }
         core::hint::spin_loop();
     }
+}
+
+pub fn new_join(id: TaskId) {
+    arch::new_join(id)
 }
 
 #[inline]

@@ -1,5 +1,5 @@
 use crate::*;
-use fast_trap::{FastContext, FastResult, FlowContext};
+use fast_trap::{FastContext, FastResult};
 use riscv::register::{
     mcause::{self, Exception as E, Trap as T},
     mepc, mstatus,
@@ -20,8 +20,6 @@ pub fn rv_wait_ipi() {
 pub fn rv_hart_id() -> usize {
     riscv::register::mhartid::read()
 }
-
-// use riscv::register::mstatus;
 
 pub fn rv_save_flag() -> usize {
     unsafe {
@@ -97,16 +95,6 @@ fn vfw_start() {
 
 const VFW_CALL: usize = 10;
 
-impl core::convert::TryFrom<usize> for VfwCall {
-    type Error = usize;
-    fn try_from(value: usize) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(VfwCall::Fork),
-            1 => Ok(VfwCall::Join),
-            v => Err(v),
-        }
-    }
-}
 pub extern "C" fn fast_handler(
     ctx: FastContext,
     a1: usize,
@@ -173,7 +161,7 @@ pub extern "C" fn fast_handler(
 // boot sp can not include handler call stack
 #[inline(always)]
 pub(crate) fn vfw_call_handler(
-    ctx: FastContext,
+    mut ctx: FastContext,
     a1: usize,
     a2: usize,
     a3: usize,
@@ -182,12 +170,13 @@ pub(crate) fn vfw_call_handler(
     a6: usize,
     a7: usize,
 ) -> FastResult {
-    let hartid = hartid();
-    let ret = match VfwCall::try_from(ctx.a0()) {
-        Ok(VfwCall::Fork) => fork_call(ctx, a1, a2, a3, a4, a5, hartid),
-        Ok(VfwCall::Join) => join_call(ctx, a1),
-        Err(e) => panic!("Invalid VfwCall {:#x}", e),
-    };
+    // let hartid = hartid();
+    let mut a: [usize; 8] = [ctx.a0(), a1, a2, a3, a4, a5, a6, a7];
+    let ret_len = vfw_call(&mut a);
+    for i in 0..ret_len {
+        ctx.regs().a[i] = a[i];
+    }
+
     unsafe {
         core::arch::asm!(
             "
@@ -195,62 +184,6 @@ pub(crate) fn vfw_call_handler(
             "
         );
     }
-    ret
-}
-// boot sp can not include handler call stack
-#[inline(always)]
-fn fork_call(
-    mut ctx: FastContext,
-    a1: usize,
-    a2: usize,
-    a3: usize,
-    a4: usize,
-    a5: usize,
-    hartid: usize,
-) -> FastResult {
-    ctx.regs().a[0] = __fork_call(a1, a2, a3, a4, a5, hartid) as usize;
-    ctx.restore()
-    // //fork on other core
-    // let hart_target = a1;
-    // let task_id = a2 as u16;
-    // let entry = a3;
-    // let arg_len = a4;
-    // let args = a5;
-    // let mut task = Task {
-    //     entry,
-    //     args: [0; 8],
-    //     task_id: TaskId::new(hartid as u16, task_id),
-    // };
-    // for i in 0..arg_len {
-    //     unsafe { task.args[i] = *((args + i * core::mem::size_of::<usize>()) as *const usize) };
-    // }
-    // crate::send_ipi(hart_target).unwrap();
-    // let ret = cpu_ctx(hart_target).hsm.remote().start(task) as usize;
-    // ctx.regs().a[0] = ret as usize;
-    // ctx.restore()
-}
-// boot sp can not include handler call stack
-#[inline(always)]
-fn join_call(ctx: FastContext, a1: usize) -> FastResult {
-    __join_call(a1);
-    // #[inline]
-    // fn finished(issued: u16, retired: u16) -> bool {
-    //     if (issued >> 15) != (retired >> 15) {
-    //         retired <= issued
-    //     } else {
-    //         retired >= issued
-    //     }
-    // }
-    // let id = TaskId::from_u32(a1 as u32);
-    // let cpu = cpu_ctx(id.hart_id() as usize);
-    // loop {
-    //     if cpu.hsm.remote().get_status().expect("Invalid State!") == crate::hsm::HsmState::Stopped
-    //         && finished(id.task_id(), cpu.current.task_id())
-    //     {
-    //         break;
-    //     }
-    //     core::hint::spin_loop();
-    // }
     ctx.restore()
 }
 

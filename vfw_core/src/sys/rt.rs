@@ -2,11 +2,9 @@ use super::arch::hartid;
 use crate::exit;
 use crate::hsm::HsmCell;
 use crate::hw_thread::{Task, TaskId};
-use crate::init_heap;
-use crate::stack::*;
 use core::ptr::NonNull;
 use core::sync::atomic::{AtomicU16, Ordering};
-use fast_trap::{FastContext, FastResult, FlowContext};
+use fast_trap::FlowContext;
 pub(crate) fn init_bss() {
     extern "C" {
         static mut _sbss: u8;
@@ -52,19 +50,19 @@ pub const PER_CPU_LEN: usize = 2;
 pub const PER_CPU_LEN: usize = 1;
 
 #[cfg(feature = "max_cores_2")]
-const MAX_CORES: usize = 2;
+pub const MAX_CORES: usize = 2;
 #[cfg(feature = "max_cores_4")]
-const MAX_CORES: usize = 4;
+pub const MAX_CORES: usize = 4;
 #[cfg(feature = "max_cores_8")]
-const MAX_CORES: usize = 8;
+pub const MAX_CORES: usize = 8;
 #[cfg(feature = "max_cores_16")]
-const MAX_CORES: usize = 16;
+pub const MAX_CORES: usize = 16;
 #[cfg(feature = "max_cores_32")]
-const MAX_CORES: usize = 32;
+pub const MAX_CORES: usize = 32;
 #[cfg(feature = "max_cores_64")]
-const MAX_CORES: usize = 64;
+pub const MAX_CORES: usize = 64;
 #[cfg(feature = "max_cores_128")]
-const MAX_CORES: usize = 128;
+pub const MAX_CORES: usize = 128;
 
 #[cfg(not(any(
     feature = "max_cores_128",
@@ -75,24 +73,47 @@ const MAX_CORES: usize = 128;
     feature = "max_cores_4",
     feature = "max_cores_2"
 )))]
-const MAX_CORES: usize = 1;
+pub const MAX_CORES: usize = 1;
 
 #[repr(usize)]
 pub(crate) enum VfwCall {
     Fork = 0,
     Join,
 }
+impl core::convert::TryFrom<usize> for VfwCall {
+    type Error = usize;
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(VfwCall::Fork),
+            1 => Ok(VfwCall::Join),
+            v => Err(v),
+        }
+    }
+}
+#[inline(always)]
+pub(crate) fn vfw_call(a: &mut [usize; 8]) -> usize {
+    let hartid = hartid();
+    let a_in: [usize; 8] = *a;
+    match VfwCall::try_from(a_in[0]) {
+        Ok(VfwCall::Fork) => fork_call(
+            &mut a[0], a_in[1], a_in[2], a_in[3], a_in[4], a_in[5], hartid,
+        ),
+        Ok(VfwCall::Join) => join_call(a_in[1]),
+        Err(e) => panic!("Invalid VfwCall {:#x}", e),
+    }
+}
 
 // boot sp can not include handler call stack
 #[inline(always)]
-pub(crate) fn __fork_call(
+pub(crate) fn fork_call(
+    a0: &mut usize,
     a1: usize,
     a2: usize,
     a3: usize,
     a4: usize,
     a5: usize,
     hartid: usize,
-) -> bool {
+) -> usize {
     //fork on other core
     let hart_target = a1;
     let task_id = a2 as u16;
@@ -107,13 +128,14 @@ pub(crate) fn __fork_call(
     for i in 0..arg_len {
         unsafe { task.args[i] = *((args + i * core::mem::size_of::<usize>()) as *const usize) };
     }
-    cpu_ctx(hart_target).hsm.remote().start(task)
+    *a0 = cpu_ctx(hart_target).hsm.remote().start(task) as usize;
+    1
 }
 
 // boot sp can not include handler call stack
 #[inline(always)]
-pub(crate) fn __join_call(a1: usize) {
-    #[inline]
+pub(crate) fn join_call(a1: usize) -> usize {
+    #[inline(always)]
     fn finished(issued: u16, retired: u16) -> bool {
         if (issued >> 15) != (retired >> 15) {
             retired <= issued
@@ -131,6 +153,7 @@ pub(crate) fn __join_call(a1: usize) {
         }
         core::hint::spin_loop();
     }
+    0
 }
 
 pub fn per_cpu_offset() -> usize {

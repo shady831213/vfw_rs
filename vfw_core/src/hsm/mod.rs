@@ -55,19 +55,19 @@ impl<T> HsmCell<T> {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     pub unsafe fn local(&self) -> LocalHsmCell<'_, T> {
         LocalHsmCell(self)
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn remote(&self) -> RemoteHsmCell<'_, T> {
         RemoteHsmCell(self)
     }
 }
 
 impl<T> LocalHsmCell<'_, T> {
-    #[inline]
+    #[inline(always)]
     pub fn start(&self) -> Result<T, HsmState> {
         loop {
             match self.0.status.compare_exchange(
@@ -90,21 +90,21 @@ impl<T> LocalHsmCell<'_, T> {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn stop(&self) {
         self.0
             .status
             .store(HsmState::Stopped as usize, Ordering::Release)
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn suspend(&self) {
         self.0
             .status
             .store(HsmState::Suspended as usize, Ordering::Relaxed)
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn resume(&self) {
         self.0
             .status
@@ -113,7 +113,7 @@ impl<T> LocalHsmCell<'_, T> {
 }
 
 impl<T> RemoteHsmCell<'_, T> {
-    #[inline]
+    #[inline(always)]
     pub fn start(self, t: T) -> bool {
         if self
             .0
@@ -136,12 +136,12 @@ impl<T> RemoteHsmCell<'_, T> {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn get_status(&self) -> Result<HsmState, usize> {
         HsmState::try_from(self.0.status.load(Ordering::Relaxed))
     }
 
-    #[inline]
+    #[inline(always)]
     pub fn allow_ipi(&self) -> bool {
         let s = self.0.status.load(Ordering::Relaxed);
         s == HsmState::Started as usize || s == HsmState::Suspended as usize

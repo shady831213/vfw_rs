@@ -4,6 +4,24 @@ use riscv::register::{
     mcause::{self, Exception as E, Trap as T},
     mepc, mstatus,
 };
+
+#[cfg(not(feature = "stack_non_priv"))]
+core::arch::global_asm!(include_str!("crt_priv_stack.S"));
+#[cfg(feature = "stack_non_priv")]
+core::arch::global_asm!(include_str!("crt_non_priv_stack.S"));
+
+#[naked]
+#[no_mangle]
+pub(crate) unsafe extern "C" fn reuse_stack_for_trap() {
+    core::arch::asm!(
+        "   call t1, {move_stack}
+            ret
+        ",
+        move_stack          =   sym fast_trap::reuse_stack_for_trap,
+        options(noreturn),
+    )
+}
+
 pub fn rv_wait_ipi() {
     use riscv::asm::wfi;
     use riscv::register::mie;
@@ -37,6 +55,104 @@ pub fn rv_restore_flag(flag: usize) {
     }
 }
 
+#[macro_export]
+macro_rules! read_csr {
+    ($csr_number:expr) => {
+        {
+            unsafe {
+                let r: usize;
+                core::arch::asm!("csrrs {0}, {1}, x0", out(reg) r, const $csr_number, options(pure, nomem, nostack));
+                r
+            }
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! write_csr {
+    ($csr_number:expr, $value:expr) => {
+        unsafe { core::arch::asm!("csrrw x0, {1}, {0}",  in(reg) $value, const $csr_number, options(nomem, nostack)) }
+    }
+}
+
+#[macro_export]
+macro_rules! set_csr {
+    ($csr_number:expr, $value:expr) => {
+        unsafe { core::arch::asm!("csrrs x0, {1}, {0}",  in(reg) $value, const $csr_number, options(nomem, nostack)) }
+    }
+}
+
+#[macro_export]
+macro_rules! clr_csr {
+    ($csr_number:expr, $value:expr) => {
+        unsafe { core::arch::asm!("csrrc x0, {1}, {0}",  in(reg) $value, const $csr_number, options(nomem, nostack)) }
+    }
+}
+
+#[macro_export]
+macro_rules! relocation {
+    (mut $sym:ident:$t:ty) => {
+        unsafe {
+            #[cfg(all(feature="reloc", target_arch = "riscv64"))]
+            {
+                &mut *(crate::relocation!(@do_asm $sym) as *mut $t)
+            }
+            #[cfg(not(all(feature="reloc", target_arch = "riscv64")))]
+            {
+                &mut $sym
+            }
+        }
+    };
+    ($sym:ident:$t:ty) => {
+        unsafe {
+            #[cfg(all(feature="reloc", target_arch = "riscv64"))]
+            {
+                &const *(crate::relocation!(@do_asm $sym) as *const $t)
+            }
+            #[cfg(not(all(feature="reloc", target_arch = "riscv64")))]
+            {
+                &const $sym
+            }
+        }
+    };
+    (@do_asm $sym:ident) => {
+        {
+                let o: usize;
+                core::arch::asm!(
+                "
+            .option push
+            .option norelax
+            la {o},{i}
+            .option pop", i = sym $sym,
+                o = out(reg) o,
+                );
+                o
+        }
+    };
+}
+
+#[no_mangle]
+pub fn wait_mcycle(cnt: usize) {
+    let cur = riscv::register::mcycle::read();
+    while riscv::register::mcycle::read().wrapping_sub(cur) < cnt {}
+}
+
+#[no_mangle]
+pub fn mcycle() -> usize {
+    riscv::register::mcycle::read()
+}
+
+#[no_mangle]
+pub fn wait_mcycle64(cnt: u64) {
+    let cur = riscv::register::mcycle::read64();
+    while riscv::register::mcycle::read64().wrapping_sub(cur) < cnt {}
+}
+
+#[no_mangle]
+pub fn mcycle64() -> u64 {
+    riscv::register::mcycle::read64()
+}
+
 #[cfg(not(feature = "max_cores_1"))]
 use crate::hw_thread::Task;
 #[cfg(not(feature = "max_cores_1"))]
@@ -56,40 +172,14 @@ pub fn run_task(task: &Task) {
     }
 }
 
-#[export_name = "vfw_start"]
-fn vfw_start() {
-    extern "C" {
-        fn __boot_core_init();
-    }
-    extern "C" {
-        fn __pre_init();
-    }
-    unsafe { __pre_init() };
-    let hartid = hartid();
-    if hartid == 0 {
-        init_bss();
-        init_heap();
-        Stack.load_as_stack(cpu_ctx(hartid).context_ptr(), fast_handler);
-        unsafe {
-            core::arch::asm!("
-            mv {gp}, gp
-            ", 
-            gp = out(reg) cpu_ctx(hartid).trap.gp,
-            );
-        }
-        new_try_fork_on(0, vfw_main as usize, 0, &[]);
-    } else {
-        Stack.load_as_stack(cpu_ctx(hartid).context_ptr(), fast_handler);
-        unsafe {
-            core::arch::asm!("
-            mv {gp}, gp
-            ", 
-            gp = out(reg) cpu_ctx(hartid).trap.gp,
-            );
-        }
-    }
+pub fn rv_init_fast_trap() {
+    Stack.load_as_stack(fast_handler);
     unsafe {
-        fast_trap::trap_entry();
+        core::arch::asm!("
+        mv {gp}, gp
+        ", 
+        gp = out(reg) cpu_ctx(hartid()).trap.gp,
+        );
     }
 }
 

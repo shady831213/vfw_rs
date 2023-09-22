@@ -1,5 +1,5 @@
-use core::ptr::NonNull;
-use fast_trap::{FastHandler, FlowContext, FreeTrapStack};
+use crate::{cpu_ctx, hartid};
+use fast_trap::{FastHandler, FreeTrapStack};
 
 extern "C" {
     static mut _sstack: u8;
@@ -21,11 +21,8 @@ impl Stack {
         self.start() - self.size()
     }
 
-    pub(super) fn load_as_stack(
-        &self,
-        context_ptr: NonNull<FlowContext>,
-        fast_handler: FastHandler,
-    ) {
+    pub(super) fn load_as_stack(&self, fast_handler: FastHandler) {
+        let context_ptr = cpu_ctx(hartid()).context_ptr();
         core::mem::forget(
             FreeTrapStack::new(self.end()..self.start(), |_| {}, context_ptr, fast_handler)
                 .unwrap()

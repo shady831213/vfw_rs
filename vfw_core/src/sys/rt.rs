@@ -2,10 +2,11 @@ use super::arch::hartid;
 use crate::exit;
 use crate::hsm::HsmCell;
 use crate::hw_thread::{Task, TaskId};
+use crate::init_heap;
 use core::ptr::NonNull;
 use core::sync::atomic::{AtomicU16, Ordering};
 use fast_trap::FlowContext;
-pub(crate) fn init_bss() {
+fn init_bss() {
     extern "C" {
         static mut _sbss: u8;
         static mut _ebss: u8;
@@ -74,6 +75,26 @@ pub const MAX_CORES: usize = 128;
     feature = "max_cores_2"
 )))]
 pub const MAX_CORES: usize = 1;
+
+#[export_name = "vfw_start"]
+fn vfw_start() {
+    extern "C" {
+        fn __boot_core_init();
+    }
+    extern "C" {
+        fn __pre_init();
+    }
+    unsafe { __pre_init() };
+    let hartid = hartid();
+    if hartid == 0 {
+        init_bss();
+        init_heap();
+        new_try_fork_on(0, vfw_main as usize, 0, &[]);
+    }
+    unsafe {
+        fast_trap::trap_entry();
+    }
+}
 
 #[repr(usize)]
 pub(crate) enum VfwCall {

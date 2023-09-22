@@ -51,6 +51,32 @@ pub const PER_CPU_LEN: usize = 2;
 ))]
 pub const PER_CPU_LEN: usize = 1;
 
+#[cfg(feature = "max_cores_2")]
+const MAX_CORES: usize = 2;
+#[cfg(feature = "max_cores_4")]
+const MAX_CORES: usize = 4;
+#[cfg(feature = "max_cores_8")]
+const MAX_CORES: usize = 8;
+#[cfg(feature = "max_cores_16")]
+const MAX_CORES: usize = 16;
+#[cfg(feature = "max_cores_32")]
+const MAX_CORES: usize = 32;
+#[cfg(feature = "max_cores_64")]
+const MAX_CORES: usize = 64;
+#[cfg(feature = "max_cores_128")]
+const MAX_CORES: usize = 128;
+
+#[cfg(not(any(
+    feature = "max_cores_128",
+    feature = "max_cores_64",
+    feature = "max_cores_32",
+    feature = "max_cores_16",
+    feature = "max_cores_8",
+    feature = "max_cores_4",
+    feature = "max_cores_2"
+)))]
+const MAX_CORES: usize = 1;
+
 pub fn per_cpu_offset() -> usize {
     if PER_CPU_LEN > 1 {
         hartid()
@@ -76,22 +102,22 @@ fn vfw_start() {
     if hartid == 0 {
         init_bss();
         init_heap();
-        Stack.load_as_stack(unsafe { CPU_CTXS[hartid].context_ptr() }, fast_handler);
+        Stack.load_as_stack(cpu_ctx(hartid).context_ptr(), fast_handler);
         unsafe {
             core::arch::asm!("
             mv {gp}, gp
             ", 
-            gp = out(reg) CPU_CTXS[hartid].trap.gp,
+            gp = out(reg) cpu_ctx(hartid).trap.gp,
             );
         }
         new_try_fork_on(0, __main as usize, 0, &[]);
     } else {
-        Stack.load_as_stack(unsafe { CPU_CTXS[hartid].context_ptr() }, fast_handler);
+        Stack.load_as_stack(cpu_ctx(hartid).context_ptr(), fast_handler);
         unsafe {
             core::arch::asm!("
             mv {gp}, gp
             ", 
-            gp = out(reg) CPU_CTXS[hartid].trap.gp,
+            gp = out(reg) cpu_ctx(hartid).trap.gp,
             );
         }
     }
@@ -111,7 +137,7 @@ fn __main() -> ! {
 #[no_mangle]
 fn __done() {
     unsafe {
-        CPU_CTXS[hartid()].hsm.local().stop();
+        cpu_ctx(hartid()).hsm.local().stop();
         fast_trap::trap_entry();
     }
 }
@@ -148,10 +174,10 @@ pub extern "C" fn fast_handler(
         unsafe {
             mstatus::set_mpp(mstatus::MPP::Machine);
             for i in 0..task.args.len() {
-                CPU_CTXS[hartid].trap.a[i] = task.args[i];
+                cpu_ctx(hartid).trap.a[i] = task.args[i];
             }
-            CPU_CTXS[hartid].trap.pc = task.entry;
-            CPU_CTXS[hartid].trap.ra = __done as usize;
+            cpu_ctx(hartid).trap.pc = task.entry;
+            cpu_ctx(hartid).trap.ra = __done as usize;
             // ------------------
             // | app stack      |  -
             // ------------------   |
@@ -163,14 +189,14 @@ pub extern "C" fn fast_handler(
             core::arch::asm!("
                 mv {sp}, sp
                 ", 
-            sp = out(reg) CPU_CTXS[hartid].trap.sp,
+            sp = out(reg) cpu_ctx(hartid).trap.sp,
             );
-            CPU_CTXS[hartid].current = task.task_id;
-            ctx.switch_to(CPU_CTXS[hartid].context_ptr())
+            cpu_ctx(hartid).current = task.task_id;
+            ctx.switch_to(cpu_ctx(hartid).context_ptr())
         }
     }
     loop {
-        match unsafe { &mut CPU_CTXS[hartid()].hsm.local().start() } {
+        match unsafe { &mut cpu_ctx(hartid()).hsm.local().start() } {
             Ok(task) => {
                 break boot(ctx, hartid(), &task);
             }
@@ -239,7 +265,7 @@ fn fork_call(
         unsafe { task.args[i] = *((args + i * core::mem::size_of::<usize>()) as *const usize) };
     }
     crate::send_ipi(hart_target).unwrap();
-    let ret = unsafe { CPU_CTXS[hart_target].hsm.remote().start(task) as usize };
+    let ret = cpu_ctx(hart_target).hsm.remote().start(task) as usize;
     ctx.regs().a[0] = ret as usize;
     ctx.restore()
 }
@@ -254,17 +280,14 @@ fn join_call(ctx: FastContext, a1: usize) -> FastResult {
         }
     }
     let id = TaskId::from_u32(a1 as u32);
-    unsafe {
-        let cpu = &mut CPU_CTXS[id.hart_id() as usize];
-        loop {
-            if cpu.hsm.remote().get_status().expect("Invalid State!")
-                == crate::hsm::HsmState::Stopped
-                && finished(id.task_id(), cpu.current.task_id())
-            {
-                break;
-            }
-            core::hint::spin_loop();
+    let cpu = cpu_ctx(id.hart_id() as usize);
+    loop {
+        if cpu.hsm.remote().get_status().expect("Invalid State!") == crate::hsm::HsmState::Stopped
+            && finished(id.task_id(), cpu.current.task_id())
+        {
+            break;
         }
+        core::hint::spin_loop();
     }
     ctx.restore()
 }
@@ -378,22 +401,11 @@ impl HartContext {
     }
 }
 
-#[cfg(feature = "max_cores_2")]
-const MAX_CORES: usize = 2;
-#[cfg(feature = "max_cores_4")]
-const MAX_CORES: usize = 4;
-#[cfg(feature = "max_cores_8")]
-const MAX_CORES: usize = 8;
-#[cfg(feature = "max_cores_16")]
-const MAX_CORES: usize = 16;
-#[cfg(feature = "max_cores_32")]
-const MAX_CORES: usize = 32;
-#[cfg(feature = "max_cores_64")]
-const MAX_CORES: usize = 64;
-#[cfg(feature = "max_cores_128")]
-const MAX_CORES: usize = 128;
-
 #[link_section = ".synced.bss"]
 static mut CPU_CTXS: [HartContext; MAX_CORES] = [const { HartContext::new() }; MAX_CORES];
 #[link_section = ".synced.bss"]
 static HW_TIDS: AtomicU16 = AtomicU16::new(0);
+
+pub fn cpu_ctx(hartid: usize) -> &'static mut HartContext {
+    unsafe { &mut CPU_CTXS[hartid] }
+}

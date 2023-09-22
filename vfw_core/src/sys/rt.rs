@@ -107,7 +107,6 @@ pub(crate) fn __fork_call(
     for i in 0..arg_len {
         unsafe { task.args[i] = *((args + i * core::mem::size_of::<usize>()) as *const usize) };
     }
-    crate::send_ipi(hart_target).unwrap();
     cpu_ctx(hart_target).hsm.remote().start(task)
 }
 
@@ -174,8 +173,7 @@ pub fn new_try_fork_on(
 ) -> Option<TaskId> {
     try_fork_on_wrapper(
         hart_target,
-        // HW_TIDS.fetch_add(1, Ordering::SeqCst),
-        alloc_tid(),
+        HW_TIDS.fetch_add(1, Ordering::SeqCst),
         entry,
         arg_len,
         args,
@@ -183,8 +181,7 @@ pub fn new_try_fork_on(
 }
 
 pub fn new_fork_on(hart_target: usize, entry: usize, arg_len: usize, args: &[usize]) -> TaskId {
-    // let task_id = HW_TIDS.fetch_add(1, Ordering::SeqCst);
-    let task_id = alloc_tid();
+    let task_id = HW_TIDS.fetch_add(1, Ordering::SeqCst);
     loop {
         if let Some(id) = try_fork_on_wrapper(hart_target, task_id, entry, arg_len, args) {
             break id;
@@ -194,8 +191,7 @@ pub fn new_fork_on(hart_target: usize, entry: usize, arg_len: usize, args: &[usi
 }
 
 pub fn new_fork(entry: usize, arg_len: usize, args: &[usize]) -> TaskId {
-    // let task_id = HW_TIDS.fetch_add(1, Ordering::SeqCst);
-    let task_id = alloc_tid();
+    let task_id = HW_TIDS.fetch_add(1, Ordering::SeqCst);
     loop {
         for i in 1..crate::num_cores() {
             if let Some(id) = try_fork_on_wrapper(i, task_id, entry, arg_len, args) {
@@ -249,10 +245,7 @@ static mut CPU_CTXS: [HartContext; MAX_CORES] = [const { HartContext::new() }; M
 #[link_section = ".synced.bss"]
 static HW_TIDS: AtomicU16 = AtomicU16::new(0);
 
+#[inline(always)]
 pub(crate) fn cpu_ctx(hartid: usize) -> &'static mut HartContext {
     unsafe { &mut CPU_CTXS[hartid] }
-}
-
-pub(crate) fn alloc_tid() -> u16 {
-    HW_TIDS.fetch_add(1, Ordering::SeqCst)
 }

@@ -157,7 +157,7 @@ pub extern "C" fn fast_handler(
                 }
                 e => match state {
                     crate::hsm::HsmState::Stopped => {
-                        crate::wait_ipi();
+                        core::hint::spin_loop();
                     }
                     _ => panic!(
                         "stopped with unsupported trap {:?}, mepc = {:#x}, state = {:?}",

@@ -1,11 +1,9 @@
 use crate::arch::arch;
 use crate::exit;
 use crate::hsm::HsmCell;
-use crate::hw_thread::{Task, TaskId};
 use crate::init_heap;
 use crate::Stack;
 use core::ptr::NonNull;
-use core::sync::atomic::{AtomicU16, Ordering};
 use fast_trap::FlowContext;
 
 #[no_mangle]
@@ -120,7 +118,7 @@ fn vfw_start() {
         init_bss();
         init_heap();
         unsafe { __boot_core_init() };
-        new_try_fork_on(0, vfw_main as usize, 0, &[]);
+        crate::try_fork_on!(0, vfw_main);
     }
     unsafe {
         fast_trap::trap_entry();
@@ -217,47 +215,6 @@ pub fn per_cpu_offset() -> usize {
     }
 }
 
-pub fn new_try_fork_on(
-    hart_target: usize,
-    entry: usize,
-    arg_len: usize,
-    args: &[usize],
-) -> Option<TaskId> {
-    arch::try_fork_on(
-        hart_target,
-        HW_TIDS.fetch_add(1, Ordering::SeqCst),
-        entry,
-        arg_len,
-        args,
-    )
-}
-
-pub fn new_fork_on(hart_target: usize, entry: usize, arg_len: usize, args: &[usize]) -> TaskId {
-    let task_id = HW_TIDS.fetch_add(1, Ordering::SeqCst);
-    loop {
-        if let Some(id) = arch::try_fork_on(hart_target, task_id, entry, arg_len, args) {
-            break id;
-        }
-        core::hint::spin_loop();
-    }
-}
-
-pub fn new_fork(entry: usize, arg_len: usize, args: &[usize]) -> TaskId {
-    let task_id = HW_TIDS.fetch_add(1, Ordering::SeqCst);
-    loop {
-        for i in 1..crate::num_cores() {
-            if let Some(id) = arch::try_fork_on(i, task_id, entry, arg_len, args) {
-                return id;
-            }
-        }
-        core::hint::spin_loop();
-    }
-}
-
-pub fn new_join(id: TaskId) {
-    arch::new_join(id)
-}
-
 #[inline]
 pub(crate) fn vfw_main() -> ! {
     extern "C" {
@@ -272,6 +229,36 @@ pub(crate) fn vfw_done() {
     unsafe {
         cpu_ctx(hartid()).hsm.local().stop();
         fast_trap::trap_entry();
+    }
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct Task {
+    pub entry: usize,
+    pub args: [usize; 8],
+    pub task_id: TaskId,
+}
+
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct TaskId(u32);
+impl TaskId {
+    pub const fn new(hart_id: u16, task_id: u16) -> Self {
+        TaskId((hart_id as u32) | ((task_id as u32) << 16))
+    }
+    pub const fn from_u32(raw: u32) -> Self {
+        TaskId(raw)
+    }
+
+    pub fn task_id(&self) -> u16 {
+        (self.0 >> 16) as u16
+    }
+    pub fn hart_id(&self) -> u16 {
+        self.0 as u16
+    }
+    pub fn raw(&self) -> u32 {
+        self.0
     }
 }
 
@@ -298,8 +285,6 @@ impl HartContext {
 
 #[link_section = ".synced.bss"]
 static mut CPU_CTXS: [HartContext; MAX_CORES] = [const { HartContext::new() }; MAX_CORES];
-#[link_section = ".synced.bss"]
-static HW_TIDS: AtomicU16 = AtomicU16::new(0);
 
 #[inline(always)]
 pub(crate) fn cpu_ctx(hartid: usize) -> &'static mut HartContext {

@@ -146,12 +146,13 @@ pub(crate) fn vfw_call_handler(
 }
 
 //should be moved into arch
+#[inline]
 pub(crate) fn try_fork_on(
     hart_target: usize,
     task_id: u16,
     entry: usize,
     arg_len: usize,
-    args: &[usize],
+    args: *const usize,
 ) -> Option<TaskId> {
     unsafe {
         let mut ret: usize = VfwCall::Fork as usize;
@@ -164,7 +165,7 @@ pub(crate) fn try_fork_on(
             ",
             out("t0") _,
             inout("a0") ret,
-            in("a1") hart_target, in("a2") task_id as usize, in("a3") entry, in("a4") arg_len, in("a5") args.as_ptr(),
+            in("a1") hart_target, in("a2") task_id as usize, in("a3") entry, in("a4") arg_len, in("a5") args,
             cause = in(reg) VFW_CALL,
             trap  = sym fast_trap::trap_entry,
             clobber_abi("C"),
@@ -178,7 +179,8 @@ pub(crate) fn try_fork_on(
 }
 
 //should be moved into arch
-pub(crate) fn new_join(id: TaskId) {
+#[inline]
+pub(crate) fn join(id: TaskId) {
     unsafe {
         core::arch::asm!(
             "   la   t0,    1f

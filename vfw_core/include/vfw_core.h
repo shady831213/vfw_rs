@@ -12,8 +12,8 @@ extern void mem_invalid(uintptr_t start, uintptr_t size);
 extern void exit(int code);
 
 
-extern uintptr_t c_fork(const void *entry, uintptr_t args_len, uintptr_t *args);
-static inline uintptr_t c_fork_wrapper(uintptr_t args_len, ...)
+extern uint32_t c_fork(const void *entry, uintptr_t args_len, uintptr_t *args);
+static inline uint32_t c_fork_wrapper(uintptr_t args_len, ...)
 {
     uintptr_t buf[8];
     const void *entry;
@@ -23,7 +23,7 @@ static inline uintptr_t c_fork_wrapper(uintptr_t args_len, ...)
 }
 #define fork(...) c_fork_wrapper(COUNT_VARGS(__VA_ARGS__), __VA_ARGS__)
 
-extern uintptr_t c_fork_on(uintptr_t id, const void *entry, uintptr_t args_len, uintptr_t *args);
+extern uint32_t c_fork_on(uintptr_t id, const void *entry, uintptr_t args_len, uintptr_t *args);
 static inline uintptr_t c_fork_on_wrapper(uintptr_t id, uintptr_t args_len, ...)
 {
     uintptr_t buf[8];
@@ -34,7 +34,7 @@ static inline uintptr_t c_fork_on_wrapper(uintptr_t id, uintptr_t args_len, ...)
 }
 #define fork_on(id, ...) c_fork_on_wrapper(id, COUNT_VARGS(__VA_ARGS__), __VA_ARGS__)
 
-extern intptr_t c_try_fork(const void *entry, uintptr_t args_len, uintptr_t *args);
+extern int32_t c_try_fork(const void *entry, uintptr_t args_len, uintptr_t *args);
 static inline intptr_t c_try_fork_wrapper(uintptr_t args_len, ...)
 {
     uintptr_t buf[8];
@@ -45,7 +45,7 @@ static inline intptr_t c_try_fork_wrapper(uintptr_t args_len, ...)
 }
 #define try_fork(...) c_try_fork_wrapper(COUNT_VARGS(__VA_ARGS__), __VA_ARGS__)
 
-extern intptr_t c_try_fork_on(uintptr_t id, const void *entry, uintptr_t args_len, uintptr_t *args);
+extern int32_t c_try_fork_on(uintptr_t id, const void *entry, uintptr_t args_len, uintptr_t *args);
 static inline intptr_t c_try_fork_on_wrapper(uintptr_t id, uintptr_t args_len, ...)
 {
     uintptr_t buf[8];
@@ -56,5 +56,5 @@ static inline intptr_t c_try_fork_on_wrapper(uintptr_t id, uintptr_t args_len, .
 }
 #define try_fork_on(id, ...) c_try_fork_on_wrapper(id, COUNT_VARGS(__VA_ARGS__), __VA_ARGS__)
 
-extern void join(uintptr_t id);
+extern void join(uint32_t id);
 #endif

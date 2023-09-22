@@ -3,9 +3,10 @@ use crate::exit;
 use crate::hsm::HsmCell;
 use crate::hw_thread::{Task, TaskId};
 use crate::init_heap;
+use crate::stack::*;
 use core::ptr::NonNull;
 use core::sync::atomic::{AtomicU16, Ordering};
-use fast_trap::{FastContext, FastResult, FlowContext, FreeTrapStack};
+use fast_trap::{FastContext, FastResult, FlowContext};
 fn init_bss() {
     extern "C" {
         static mut _sbss: u8;
@@ -58,89 +59,6 @@ pub fn per_cpu_offset() -> usize {
     }
 }
 
-extern "C" {
-    static mut _sstack: u8;
-    static _stack_size: usize;
-    static _provide_base: usize;
-}
-
-pub struct Stack;
-impl Stack {
-    fn start(&self) -> usize {
-        stack_start()
-    }
-
-    fn size(&self) -> usize {
-        stack_size()
-    }
-
-    fn end(&self) -> usize {
-        self.start() - self.size()
-    }
-
-    fn load_as_stack(&self) {
-        let context_ptr = unsafe { &mut CPU_CTXS[hartid()] }.context_ptr();
-        core::mem::forget(
-            FreeTrapStack::new(self.end()..self.start(), |_| {}, context_ptr, fast_handler)
-                .unwrap()
-                .load(),
-        );
-        //save clean sp and gp to contex
-        unsafe {
-            let hartid = hartid();
-            core::arch::asm!("
-            mv {gp}, gp
-            ", 
-            gp = out(reg) CPU_CTXS[hartid].trap.gp,
-            );
-        }
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn stack_start() -> usize {
-    let m_sstack = unsafe { &mut _sstack } as *mut _ as usize;
-    #[cfg(feature = "stack_non_priv")]
-    {
-        m_sstack - stack_size() * hartid()
-    }
-    #[cfg(not(feature = "stack_non_priv"))]
-    {
-        m_sstack
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn stack_size() -> usize {
-    let m_stack_size = unsafe { &_stack_size } as *const usize as usize;
-    let m_provide_base = unsafe { &_provide_base } as *const usize as usize;
-    m_stack_size - m_provide_base
-}
-
-// #[export_name = "vfw_start"]
-// fn vfw_start() {
-//     use crate::hw_thread::idle;
-//     extern "C" {
-//         fn main() -> u32;
-//     }
-//     extern "C" {
-//         fn __boot_core_init();
-//     }
-//     extern "C" {
-//         fn __pre_init();
-//     }
-//     unsafe { __pre_init() };
-//     let hartid = hartid();
-//     if hartid == 0 {
-//         init_bss();
-//         init_heap();
-//         unsafe { __boot_core_init() };
-//         let ret = unsafe { main() };
-//         exit(ret);
-//     } else {
-//         idle()
-//     }
-// }
 use riscv::register::{
     mcause::{self, Exception as E, Trap as T},
     mepc, mstatus,
@@ -158,10 +76,24 @@ fn vfw_start() {
     if hartid == 0 {
         init_bss();
         init_heap();
-        Stack.load_as_stack();
+        Stack.load_as_stack(unsafe { CPU_CTXS[hartid].context_ptr() }, fast_handler);
+        unsafe {
+            core::arch::asm!("
+            mv {gp}, gp
+            ", 
+            gp = out(reg) CPU_CTXS[hartid].trap.gp,
+            );
+        }
         new_try_fork_on(0, __main as usize, 0, &[]);
     } else {
-        Stack.load_as_stack();
+        Stack.load_as_stack(unsafe { CPU_CTXS[hartid].context_ptr() }, fast_handler);
+        unsafe {
+            core::arch::asm!("
+            mv {gp}, gp
+            ", 
+            gp = out(reg) CPU_CTXS[hartid].trap.gp,
+            );
+        }
     }
     unsafe {
         fast_trap::trap_entry();

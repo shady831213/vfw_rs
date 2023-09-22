@@ -7,7 +7,6 @@ links = "vfw_core"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-spin = { version = "0.9", optional = true }
 buddy_system_allocator = "0.9"
 vfw_primitives = {path = "../vfw_primitives"}
 
@@ -28,10 +27,10 @@ reloc = []
 cpu_data_non_priv = []
 stack_non_priv = []
 max_cores_1 = []
-max_cores_2 = ["spin"]
-max_cores_4 = ["spin"]
-max_cores_8 = ["spin"]
-max_cores_16 = ["spin"]
-max_cores_32 = ["spin"]
-max_cores_64 = ["spin"]
-max_cores_128 = ["spin"]
+max_cores_2 = []
+max_cores_4 = []
+max_cores_8 = []
+max_cores_16 = []
+max_cores_32 = []
+max_cores_64 = []
+max_cores_128 = []

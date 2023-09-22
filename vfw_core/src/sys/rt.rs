@@ -119,6 +119,7 @@ fn vfw_start() {
     if hartid == 0 {
         init_bss();
         init_heap();
+        unsafe { __boot_core_init() };
         new_try_fork_on(0, vfw_main as usize, 0, &[]);
     }
     unsafe {

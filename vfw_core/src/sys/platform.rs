@@ -1,46 +1,42 @@
 use crate::num_cores;
-extern "C" {
-    fn __save_flag() -> usize;
-    fn __restore_flag(flag: usize);
-    fn __mem_wb(start: usize, size: usize);
-    fn __mem_flush(start: usize, size: usize);
-    fn __mem_invalid(start: usize, size: usize);
-    fn __send_ipi(hart_id: usize);
-    fn __clear_ipi(hart_id: usize);
-    fn __wait_ipi();
-}
 
+#[linkage = "weak"]
 #[no_mangle]
-pub extern "C" fn mem_wb(start: usize, size: usize) {
-    unsafe { __mem_wb(start, size) }
-}
+pub extern "C" fn mem_wb(_start: usize, _size: usize) {}
 
+#[linkage = "weak"]
 #[no_mangle]
-pub extern "C" fn mem_flush(start: usize, size: usize) {
-    unsafe { __mem_flush(start, size) }
-}
+pub extern "C" fn mem_flush(_start: usize, _size: usize) {}
 
+#[linkage = "weak"]
 #[no_mangle]
-pub extern "C" fn mem_invalid(start: usize, size: usize) {
-    unsafe { __mem_invalid(start, size) }
-}
+pub extern "C" fn mem_invalid(_start: usize, _size: usize) {}
 
 pub fn wait_ipi() {
+    extern "C" {
+        fn __wait_ipi();
+    }
     unsafe {
         __wait_ipi();
     }
 }
 
 pub fn send_ipi(target: usize) {
+    extern "C" {
+        fn __send_ipi(hart_id: usize);
+    }
     if target >= num_cores() as usize {
-        return;
+        panic!("send_ipi invalid target {}", target);
     }
     unsafe { __send_ipi(target) };
 }
 
 pub fn clear_ipi(target: usize) {
+    extern "C" {
+        fn __clear_ipi(hart_id: usize);
+    }
     if target >= num_cores() as usize {
-        return;
+        panic!("clear_ipi invalid target {}", target);
     }
     unsafe { __clear_ipi(target) };
 }
@@ -48,7 +44,7 @@ pub fn clear_ipi(target: usize) {
 pub fn send_ipis(targets: usize) {
     for i in 0..num_cores() as usize {
         if targets & (1 << i) != 0 {
-            unsafe { __send_ipi(i) };
+            send_ipi(i);
         }
     }
 }

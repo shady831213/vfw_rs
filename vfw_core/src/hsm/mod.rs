@@ -81,8 +81,7 @@ impl<T> LocalHsmCell<'_, T> {
                     if s == HsmState::StartPendingExt as usize {
                         spin_loop()
                     } else {
-                        let state = HsmState::try_from(s).unwrap();
-                        // TODO: handle illegel state
+                        let state = HsmState::try_from(s).expect("Illegle hsm state!");
                         break Err(state);
                     }
                 }
@@ -139,11 +138,5 @@ impl<T> RemoteHsmCell<'_, T> {
     #[inline(always)]
     pub fn get_status(&self) -> Result<HsmState, usize> {
         HsmState::try_from(self.0.status.load(Ordering::Relaxed))
-    }
-
-    #[inline(always)]
-    pub fn allow_ipi(&self) -> bool {
-        let s = self.0.status.load(Ordering::Relaxed);
-        s == HsmState::Started as usize || s == HsmState::Suspended as usize
     }
 }

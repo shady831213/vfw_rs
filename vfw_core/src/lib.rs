@@ -16,5 +16,7 @@ pub use sys::*;
 use vfw_primitives::*;
 mod hsm;
 pub use hsm::*;
+mod msg;
+pub use msg::*;
 mod stack;
 pub use stack::*;

@@ -31,20 +31,18 @@ pub fn wait_ipi() {
     }
 }
 
-pub fn send_ipi(target: usize) -> Result<(), &'static str> {
+pub fn send_ipi(target: usize) {
     if target >= num_cores() as usize {
-        return Err("invalid target!");
+        return;
     }
     unsafe { __send_ipi(target) };
-    Ok(())
 }
 
-pub fn clear_ipi(target: usize) -> Result<(), &'static str> {
+pub fn clear_ipi(target: usize) {
     if target >= num_cores() as usize {
-        return Err("invalid target!");
+        return;
     }
     unsafe { __clear_ipi(target) };
-    Ok(())
 }
 
 pub fn send_ipis(targets: usize) {

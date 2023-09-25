@@ -2,7 +2,9 @@ use crate::arch::arch;
 use crate::exit;
 use crate::hsm::HsmCell;
 use crate::init_heap;
+use crate::msg::MsgCell;
 use crate::Stack;
+use crate::{clear_ipi, send_ipi, wait_ipi};
 use core::ptr::NonNull;
 use fast_trap::FlowContext;
 
@@ -125,6 +127,8 @@ fn vfw_start() {
     }
 }
 
+pub(crate) const IPI_HSM: usize = -1isize as usize;
+
 #[repr(usize)]
 pub(crate) enum VfwCall {
     Fork = 0,
@@ -137,6 +141,17 @@ impl core::convert::TryFrom<usize> for VfwCall {
             0 => Ok(VfwCall::Fork),
             1 => Ok(VfwCall::Join),
             v => Err(v),
+        }
+    }
+}
+
+#[inline(always)]
+pub(crate) fn vfw_idle() {
+    wait_ipi();
+    unsafe {
+        if *cpu_ctx(hartid()).ipi_msg.local().recv() == IPI_HSM {
+            clear_ipi(hartid());
+            cpu_ctx(hartid()).ipi_msg.local().done();
         }
     }
 }
@@ -179,7 +194,12 @@ pub(crate) fn fork_call(
     for i in 0..arg_len {
         unsafe { task.args[i] = *((args + i * core::mem::size_of::<usize>()) as *const usize) };
     }
-    *a0 = cpu_ctx(hart_target).hsm.remote().start(task) as usize;
+    let ret = cpu_ctx(hart_target).hsm.remote().start(task);
+    if ret {
+        cpu_ctx(hart_target).ipi_msg.remote().send(IPI_HSM);
+        send_ipi(hart_target);
+    }
+    *a0 = ret as usize;
     1
 }
 
@@ -265,6 +285,7 @@ impl TaskId {
 pub(crate) struct HartContext {
     pub(crate) trap: FlowContext,
     pub(crate) hsm: HsmCell<Task>,
+    pub(crate) ipi_msg: MsgCell<usize>,
     pub(crate) current: TaskId,
 }
 
@@ -273,6 +294,7 @@ impl HartContext {
         HartContext {
             trap: FlowContext::ZERO,
             hsm: HsmCell::new(),
+            ipi_msg: MsgCell::new(0),
             current: TaskId::new(0, 0),
         }
     }
@@ -283,7 +305,7 @@ impl HartContext {
     }
 }
 
-#[link_section = ".synced.bss"]
+#[link_section = ".synced.data"]
 static mut CPU_CTXS: [HartContext; MAX_CORES] = [const { HartContext::new() }; MAX_CORES];
 
 #[inline(always)]

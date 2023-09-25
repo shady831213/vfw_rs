@@ -103,9 +103,7 @@ pub(crate) extern "C" fn fast_handler(
                     break vfw_call_handler(ctx, a1, a2, a3, a4, a5, a6, a7);
                 }
                 e => match state {
-                    crate::hsm::HsmState::Stopped => {
-                        core::hint::spin_loop();
-                    }
+                    crate::hsm::HsmState::Stopped => vfw_idle(),
                     _ => panic!(
                         "stopped with unsupported trap {:?}, mepc = {:#x}, state = {:?}",
                         e,

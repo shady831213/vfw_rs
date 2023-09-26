@@ -113,7 +113,7 @@ fn vfw_start() {
     extern "C" {
         fn __pre_init();
     }
-    Stack.load_as_stack(arch::fast_handler);
+    Stack.load_as_stack(arch::vfw_fast_handler);
     arch::init_fast_trap();
     unsafe { __pre_init() };
     let hartid = hartid();

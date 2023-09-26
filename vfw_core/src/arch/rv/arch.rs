@@ -54,7 +54,7 @@ pub(crate) fn init_fast_trap() {
 
 const VFW_CALL: usize = 10;
 
-pub(crate) extern "C" fn fast_handler(
+pub(crate) extern "C" fn vfw_fast_handler(
     ctx: FastContext,
     a1: usize,
     a2: usize,

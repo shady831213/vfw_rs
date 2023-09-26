@@ -54,6 +54,8 @@ pub(crate) fn init_fast_trap() {
 
 const VFW_CALL: usize = 10;
 
+//only for machine level vfw run-time
+//if need switch to other context, such as SBI, Stack.load_as_stack can be used to set other context and fast_handler
 pub(crate) extern "C" fn vfw_fast_handler(
     ctx: FastContext,
     a1: usize,

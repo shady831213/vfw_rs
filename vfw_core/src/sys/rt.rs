@@ -113,11 +113,10 @@ fn vfw_start() {
     extern "C" {
         fn __pre_init();
     }
-    Stack.load_as_stack(arch::vfw_fast_handler);
+    Stack.load_as_stack(cpu_ctx(hartid()).context_ptr(), arch::vfw_fast_handler);
     arch::init_fast_trap();
     unsafe { __pre_init() };
-    let hartid = hartid();
-    if hartid == 0 {
+    if hartid() == 0 {
         init_bss();
         init_heap();
         unsafe { __boot_core_init() };

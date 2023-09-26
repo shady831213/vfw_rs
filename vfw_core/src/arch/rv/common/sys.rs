@@ -46,6 +46,40 @@ macro_rules! clr_csr {
 }
 
 #[macro_export]
+macro_rules! get_sp {
+    () => {
+        {
+            unsafe {
+                let sp: usize;
+                core::arch::asm!("mv {0}, sp", out(reg) sp, options(pure, nomem, nostack));
+                sp
+            }
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! check_stack {
+    () => {{
+        extern "C" {
+            fn stack_start() -> usize;
+            fn stack_size() -> usize;
+        }
+        unsafe {
+            let stack_end = stack_start() - stack_size();
+            if get_sp!() > stack_start() || get_sp!() <= stack_end {
+                panic!(
+                    "stack {:#x} is out of range ({:#x} - {:#x})",
+                    get_sp!(),
+                    stack_start(),
+                    stack_end
+                );
+            }
+        }
+    }};
+}
+
+#[macro_export]
 macro_rules! relocation {
     (mut $sym:ident:$t:ty) => {
         unsafe {

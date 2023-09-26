@@ -10,7 +10,8 @@ extern void mem_wb(uintptr_t start, uintptr_t size);
 extern void mem_flush(uintptr_t start, uintptr_t size);
 extern void mem_invalid(uintptr_t start, uintptr_t size);
 extern void exit(int code);
-
+extern uintptr_t stack_start();
+extern uintptr_t stack_size();
 
 extern uint32_t c_fork(const void *entry, uintptr_t args_len, uintptr_t *args);
 static inline uint32_t c_fork_wrapper(uintptr_t args_len, ...)

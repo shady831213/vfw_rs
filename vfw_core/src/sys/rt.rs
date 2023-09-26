@@ -1,6 +1,7 @@
 use crate::arch::arch;
 use crate::exit;
 use crate::hsm::HsmCell;
+use crate::hw_thread::start_main;
 use crate::init_heap;
 use crate::msg::MsgCell;
 use crate::Stack;
@@ -120,7 +121,7 @@ fn vfw_start() {
         init_bss();
         init_heap();
         unsafe { __boot_core_init() };
-        crate::try_fork_on!(0, vfw_main);
+        start_main(vfw_main as usize);
     }
     unsafe {
         fast_trap::trap_entry();
@@ -182,6 +183,9 @@ pub(crate) fn fork_call(
 ) -> usize {
     //fork on other core
     let hart_target = a1;
+    if hart_target >= num_cores() {
+        panic!("Invalid fork target id {}!", hart_target);
+    }
     let task_id = a2 as u16;
     let entry = a3;
     let arg_len = a4;
@@ -215,7 +219,11 @@ pub(crate) fn join_call(a1: usize) -> usize {
         }
     }
     let id = TaskId::from_u32(a1 as u32);
-    let cpu = cpu_ctx(id.hart_id() as usize);
+    let hart_target = id.hart_id() as usize;
+    if hart_target >= num_cores() {
+        panic!("Invalid join target id {}!", hart_target);
+    }
+    let cpu = cpu_ctx(hart_target);
     loop {
         if cpu.hsm.remote().get_status().expect("Invalid State!") == crate::hsm::HsmState::Stopped
             && finished(id.task_id(), cpu.current.task_id())

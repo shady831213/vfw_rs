@@ -1,3 +1,5 @@
+use crate::arch::arch;
+
 #[cfg(any(
     feature = "max_cores_128",
     feature = "max_cores_64",
@@ -8,19 +10,23 @@
     feature = "max_cores_2"
 ))]
 mod hw_thread_imp {
-    use crate::arch::arch;
+    use super::*;
     use crate::TaskId;
     use core::sync::atomic::{AtomicU16, Ordering};
 
     #[link_section = ".synced.bss"]
     static HW_TIDS: AtomicU16 = AtomicU16::new(0);
 
+    pub(super) fn get_task_id() -> u16 {
+        HW_TIDS.fetch_add(1, Ordering::SeqCst)
+    }
+
     #[no_mangle]
     extern "C" fn c_fork(entry: usize, args_len: usize, args: *const usize) -> u32 {
-        let task_id = HW_TIDS.fetch_add(1, Ordering::SeqCst);
+        let task_id = get_task_id();
         loop {
             for i in 1..crate::num_cores() {
-                if let Some(id) = arch::try_fork_on(i, task_id, entry, args_len, args) {
+                if let Some(id) = arch::_try_fork_on(i, task_id, entry, args_len, args) {
                     return id.raw();
                 }
             }
@@ -35,9 +41,9 @@ mod hw_thread_imp {
         args_len: usize,
         args: *const usize,
     ) -> u32 {
-        let task_id = HW_TIDS.fetch_add(1, Ordering::SeqCst);
+        let task_id = get_task_id();
         loop {
-            if let Some(id) = arch::try_fork_on(target_id, task_id, entry, args_len, args) {
+            if let Some(id) = arch::_try_fork_on(target_id, task_id, entry, args_len, args) {
                 break id.raw();
             }
             core::hint::spin_loop();
@@ -46,9 +52,9 @@ mod hw_thread_imp {
 
     #[no_mangle]
     extern "C" fn c_try_fork(entry: usize, args_len: usize, args: *const usize) -> u32 {
-        let task_id = HW_TIDS.fetch_add(1, Ordering::SeqCst);
+        let task_id = get_task_id();
         for i in 1..crate::num_cores() {
-            if let Some(id) = arch::try_fork_on(i, task_id, entry, args_len, args) {
+            if let Some(id) = arch::_try_fork_on(i, task_id, entry, args_len, args) {
                 return id.raw();
             }
         }
@@ -62,13 +68,7 @@ mod hw_thread_imp {
         args_len: usize,
         args: *const usize,
     ) -> u32 {
-        if let Some(id) = arch::try_fork_on(
-            target_id,
-            HW_TIDS.fetch_add(1, Ordering::SeqCst),
-            entry,
-            args_len,
-            args,
-        ) {
+        if let Some(id) = arch::_try_fork_on(target_id, get_task_id(), entry, args_len, args) {
             return id.raw();
         }
         -1i32 as u32
@@ -76,10 +76,10 @@ mod hw_thread_imp {
 
     #[inline]
     pub fn _fork(entry: usize, args: &[usize]) -> u32 {
-        let task_id = HW_TIDS.fetch_add(1, Ordering::SeqCst);
+        let task_id = get_task_id();
         loop {
             for i in 1..crate::num_cores() {
-                if let Some(id) = arch::try_fork_on(i, task_id, entry, args.len(), args.as_ptr()) {
+                if let Some(id) = arch::_try_fork_on(i, task_id, entry, args.len(), args.as_ptr()) {
                     return id.raw();
                 }
             }
@@ -89,10 +89,10 @@ mod hw_thread_imp {
 
     #[inline]
     pub fn _fork_on(target_id: usize, entry: usize, args: &[usize]) -> u32 {
-        let task_id = HW_TIDS.fetch_add(1, Ordering::SeqCst);
+        let task_id = get_task_id();
         loop {
             if let Some(id) =
-                arch::try_fork_on(target_id, task_id, entry, args.len(), args.as_ptr())
+                arch::_try_fork_on(target_id, task_id, entry, args.len(), args.as_ptr())
             {
                 break id.raw();
             }
@@ -102,9 +102,9 @@ mod hw_thread_imp {
 
     #[inline]
     pub fn _try_fork(entry: usize, args: &[usize]) -> Option<u32> {
-        let task_id = HW_TIDS.fetch_add(1, Ordering::SeqCst);
+        let task_id = get_task_id();
         for i in 1..crate::num_cores() {
-            if let Some(id) = arch::try_fork_on(i, task_id, entry, args.len(), args.as_ptr()) {
+            if let Some(id) = arch::_try_fork_on(i, task_id, entry, args.len(), args.as_ptr()) {
                 return Some(id.raw());
             }
         }
@@ -113,19 +113,13 @@ mod hw_thread_imp {
 
     #[inline]
     pub fn _try_fork_on(target_id: usize, entry: usize, args: &[usize]) -> Option<u32> {
-        arch::try_fork_on(
-            target_id,
-            HW_TIDS.fetch_add(1, Ordering::SeqCst),
-            entry,
-            args.len(),
-            args.as_ptr(),
-        )
-        .map(|id| id.raw())
+        arch::_try_fork_on(target_id, get_task_id(), entry, args.len(), args.as_ptr())
+            .map(|id| id.raw())
     }
 
     #[no_mangle]
     pub extern "C" fn join(task_id: u32) {
-        arch::join(TaskId::from_u32(task_id as u32))
+        arch::_join(TaskId::from_u32(task_id as u32))
     }
 }
 
@@ -139,9 +133,10 @@ mod hw_thread_imp {
     feature = "max_cores_2"
 )))]
 mod hw_thread_stub {
-    pub fn idle() {
-        panic!("hw_thread not support!")
+    pub(super) fn get_task_id() -> u16 {
+        0
     }
+
     #[no_mangle]
     extern "C" fn c_fork(_entry: usize, _args_len: usize, _args: *const usize) -> usize {
         panic!("hw_thread not support!")
@@ -254,4 +249,8 @@ macro_rules! try_fork_on {
     let args = [$($arg as usize,)*];
     crate::_try_fork_on($target as usize, $entry as usize, &args)
 }};
+}
+#[inline]
+pub(super) fn start_main(entry: usize) {
+    arch::_try_fork_on(0, get_task_id(), entry, 0, 0 as *const usize);
 }

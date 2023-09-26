@@ -145,7 +145,7 @@ pub(crate) fn vfw_call_handler(
 
 //should be moved into arch
 #[inline]
-pub(crate) fn try_fork_on(
+pub(crate) fn _try_fork_on(
     hart_target: usize,
     task_id: u16,
     entry: usize,
@@ -178,7 +178,7 @@ pub(crate) fn try_fork_on(
 
 //should be moved into arch
 #[inline]
-pub(crate) fn join(id: TaskId) {
+pub(crate) fn _join(id: TaskId) {
     unsafe {
         core::arch::asm!(
             "   la   t0,    1f

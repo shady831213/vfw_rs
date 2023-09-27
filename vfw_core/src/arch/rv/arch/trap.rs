@@ -5,50 +5,100 @@ use riscv::register::{
     mepc, mstatus,
 };
 
-#[cfg(not(feature = "stack_non_priv"))]
-core::arch::global_asm!(include_str!("crt_priv_stack.S"));
-#[cfg(feature = "stack_non_priv")]
-core::arch::global_asm!(include_str!("crt_non_priv_stack.S"));
+macro_rules! exchange {
+    () => {
+        exchange!(sp)
+    };
 
-#[naked]
-#[no_mangle]
-pub(crate) unsafe extern "C" fn reuse_stack_for_trap() {
-    core::arch::asm!(
-        "   call t1, {move_stack}
-            ret
-        ",
-        move_stack          =   sym fast_trap::reuse_stack_for_trap,
-        options(noreturn),
-    )
+    ($reg:ident) => {
+        concat!("csrrw ", stringify!($reg), ", mscratch, ", stringify!($reg))
+    };
 }
 
-pub(crate) fn hartid() -> usize {
-    riscv::register::mhartid::read()
-}
+#[cfg(target_pointer_width = "32")]
+#[macro_use]
+mod arch {
+    macro_rules! save {
+        ($reg:ident => $ptr:ident[$pos:expr]) => {
+            concat!(
+                "sw ",
+                stringify!($reg),
+                ", 4*",
+                $pos,
+                '(',
+                stringify!($ptr),
+                ')'
+            )
+        };
+    }
 
-pub(crate) fn save_flag() -> usize {
-    unsafe {
-        let flag = mstatus::read().mie() as usize;
-        mstatus::clear_mie();
-        flag
+    macro_rules! push_stack {
+        ($size:expr) => {
+            concat!("addi sp, sp, ", "-4*", $size)
+        };
+    }
+
+    macro_rules! pop_stack {
+        ($size:expr) => {
+            concat!("addi sp, sp, ", "4*", $size)
+        };
+    }
+
+    macro_rules! load {
+        ($ptr:ident[$pos:expr] => $reg:ident) => {
+            concat!(
+                "lw ",
+                stringify!($reg),
+                ", 4*",
+                $pos,
+                '(',
+                stringify!($ptr),
+                ')'
+            )
+        };
     }
 }
-
-pub(crate) fn restore_flag(flag: usize) {
-    unsafe {
-        if flag != 0 {
-            mstatus::set_mie();
-        }
+#[cfg(target_pointer_width = "64")]
+#[macro_use]
+mod arch {
+    macro_rules! save {
+        ($reg:ident => $ptr:ident[$pos:expr]) => {
+            concat!(
+                "sd ",
+                stringify!($reg),
+                ", 8*",
+                $pos,
+                '(',
+                stringify!($ptr),
+                ')'
+            )
+        };
     }
-}
 
-pub(crate) fn init_fast_trap() {
-    unsafe {
-        core::arch::asm!("
-        mv {gp}, gp
-        ", 
-        gp = out(reg) cpu_ctx(hartid()).trap.gp,
-        );
+    macro_rules! push_stack {
+        ($size:expr) => {
+            concat!("addi sp, sp, ", "-8*", $size)
+        };
+    }
+
+    macro_rules! pop_stack {
+        ($size:expr) => {
+            concat!("addi sp, sp, ", "8*", $size)
+        };
+    }
+
+    macro_rules! load {
+        ($ptr:ident[$pos:expr] => $reg:ident) => {
+            concat!(
+                "ld ",
+                stringify!($reg),
+                ", 8*",
+                $pos,
+                '(',
+                stringify!($ptr),
+                ')'
+            )
+        };
     }
 }
 
@@ -56,6 +106,8 @@ const VFW_CALL: usize = 10;
 
 //only for machine level vfw run-time
 //if need switch to other context, such as SBI, Stack.load_as_stack can be used to set other context and fast_handler
+//for sbi, all machine level run time is in the trap scope, thus, all stack is available for fast_trap
+//so vfw_fast_handler only handle machine level app
 pub(crate) extern "C" fn vfw_fast_handler(
     ctx: FastContext,
     a1: usize,
@@ -106,17 +158,38 @@ pub(crate) extern "C" fn vfw_fast_handler(
                 }
                 e => match state {
                     crate::hsm::HsmState::Stopped => vfw_idle(),
-                    _ => panic!(
-                        "stopped with unsupported trap {:?}, mepc = {:#x}, state = {:?}",
-                        e,
-                        mepc::read(),
-                        state
-                    ),
+                    _ => {
+                        unsafe { exception_handler_wrapper() };
+                        break ctx.restore();
+                    }
                 },
             },
         }
     }
 }
+
+#[naked]
+pub unsafe extern "C" fn exception_handler_wrapper() {
+    core::arch::asm!(
+        exchange!(),
+        push_stack!(1),
+        save!(ra => sp[0]),
+        "call {handler}",
+        load!(sp[0] => ra),
+        pop_stack!(1),
+        exchange!(),
+        "ret",
+        handler    = sym exception_handler,
+        options(noreturn),
+    )
+}
+
+extern "C" fn exception_handler() {
+    let cause = mcause::read().cause();
+    mepc::write(mepc::read().wrapping_add(4));
+    println!("sp = {:#x}, cause = {:?}", get_sp!(), cause);
+}
+
 // boot sp can not include handler call stack
 #[inline(always)]
 pub(crate) fn vfw_call_handler(

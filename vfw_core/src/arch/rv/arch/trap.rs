@@ -104,10 +104,25 @@ mod arch {
 
 const VFW_CALL: usize = 10;
 
+#[inline(always)]
+unsafe fn to_other_ctx(ctx: &fast_trap::FlowContext) {
+    core::arch::asm!(
+        "   mv         gp, {gp}
+            mv         tp, {tp}
+            csrw mscratch, sp
+            csrw     mepc, {pc}
+        ",
+        gp = in(reg) ctx.gp,
+        tp = in(reg) ctx.tp,
+        pc = in(reg) ctx.pc,
+    );
+}
+
 //only for machine level vfw run-time
 //if need switch to other context, such as SBI, Stack.load_as_stack can be used to set other context and fast_handler
 //for sbi, all machine level run time is in the trap scope, thus, all stack is available for fast_trap
 //so vfw_fast_handler only handle machine level app
+#[inline(always)]
 pub(crate) extern "C" fn vfw_fast_handler(
     ctx: FastContext,
     a1: usize,
@@ -118,15 +133,18 @@ pub(crate) extern "C" fn vfw_fast_handler(
     a6: usize,
     a7: usize,
 ) -> FastResult {
-    #[inline]
-    fn boot(ctx: FastContext, hartid: usize, task: &Task) -> FastResult {
+    #[inline(always)]
+    fn boot(mut ctx: FastContext, hartid: usize, task: &Task) -> FastResult {
         unsafe {
             mstatus::set_mpp(mstatus::MPP::Machine);
+            cpu_ctx(hartid).current = task.task_id;
+
+            let regs = ctx.regs();
             for i in 0..task.args.len() {
-                cpu_ctx(hartid).trap.a[i] = task.args[i];
+                regs.a[i] = task.args[i];
             }
-            cpu_ctx(hartid).trap.pc = task.entry;
-            cpu_ctx(hartid).trap.ra = vfw_done as usize;
+            regs.pc = task.entry;
+            regs.ra = vfw_done as usize;
             // ------------------
             // | app stack      |  -
             // ------------------   |
@@ -135,13 +153,8 @@ pub(crate) extern "C" fn vfw_fast_handler(
             // | handler struct |  -
 
             // this sp including handler sturct + fast stack automatically
-            core::arch::asm!("
-                mv {sp}, sp
-                ",
-            sp = out(reg) cpu_ctx(hartid).trap.sp,
-            );
-            cpu_ctx(hartid).current = task.task_id;
-            ctx.switch_to(cpu_ctx(hartid).context_ptr())
+            to_other_ctx(regs);
+            FastResult::Restore
         }
     }
     loop {

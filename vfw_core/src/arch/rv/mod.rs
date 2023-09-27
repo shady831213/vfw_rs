@@ -1,3 +1,3 @@
 pub(crate) mod arch;
-mod common;
+pub(super) mod common;
 pub mod standard;

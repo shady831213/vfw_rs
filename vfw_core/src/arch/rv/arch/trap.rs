@@ -169,13 +169,16 @@ pub(crate) extern "C" fn vfw_fast_handler(
                     }
                     break vfw_call_handler(ctx, a1, a2, a3, a4, a5, a6, a7);
                 }
-                e => match state {
+                T::Exception(e) => match state {
                     crate::hsm::HsmState::Stopped => vfw_idle(),
                     _ => {
                         unsafe { exception_handler_wrapper() };
                         break ctx.restore();
                     }
                 },
+                T::Interrupt(i) => {
+                    todo!()
+                }
             },
         }
     }
@@ -197,10 +200,8 @@ pub unsafe extern "C" fn exception_handler_wrapper() {
     )
 }
 
-extern "C" fn exception_handler() {
-    let cause = mcause::read().cause();
-    mepc::write(mepc::read().wrapping_add(4));
-    println!("sp = {:#x}, cause = {:?}", get_sp!(), cause);
+unsafe extern "C" fn exception_handler() {
+    super::super::standard::trap::expts()[per_cpu_offset()].handle();
 }
 
 // boot sp can not include handler call stack

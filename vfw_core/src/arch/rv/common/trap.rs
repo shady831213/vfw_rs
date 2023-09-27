@@ -96,24 +96,24 @@ impl InterruptVector {
 }
 
 pub union ExceptionVector {
-    pub handler: unsafe extern "C" fn(trap_frame: &mut TrapFrame),
+    pub handler: unsafe extern "C" fn(),
     pub reserved: usize,
 }
 
 impl ExceptionVector {
-    pub unsafe fn handle(&self, trap_frame: &mut TrapFrame) {
+    pub unsafe fn handle(&self) {
         if self.reserved == 0 {
             default_trap_handler();
         } else {
-            (self.handler)(trap_frame);
+            (self.handler)();
         }
     }
 }
 
 pub fn default_trap_handler() {
     panic!(
-        "Unexpected trap: cause:{:x}, mepc:{:x}, mtval:{:x}",
-        mcause::read().bits(),
+        "Unexpected trap: cause:{:?}, mepc:{:x}, mtval:{:x}",
+        mcause::read(),
         mepc::read(),
         mtval::read()
     );
@@ -122,11 +122,11 @@ pub fn default_trap_handler() {
 const INT_VECTOR_LEN: usize = 12;
 
 #[no_mangle]
-extern "C" fn start_trap_rust(trap_frame: &mut TrapFrame) {
+extern "C" fn start_trap_rust() {
     unsafe {
         let cause = mcause::read();
         if cause.is_exception() {
-            expts()[per_cpu_offset()].handle(trap_frame);
+            expts()[per_cpu_offset()].handle();
         } else {
             let code = cause.code();
             if code < INT_VECTOR_LEN {
@@ -140,7 +140,7 @@ extern "C" fn start_trap_rust(trap_frame: &mut TrapFrame) {
 }
 
 #[inline]
-fn expts() -> &'static mut [ExceptionVector] {
+pub(crate) fn expts() -> &'static mut [ExceptionVector] {
     crate::relocation!(mut __EXCEPTIONS: [ExceptionVector; PER_CPU_LEN])
 }
 
@@ -149,7 +149,7 @@ fn interrupts() -> &'static mut [[InterruptVector; INT_VECTOR_LEN]] {
     crate::relocation!(mut __INTERRUPTS: [[InterruptVector; INT_VECTOR_LEN]; PER_CPU_LEN])
 }
 
-pub unsafe fn register_exception_handler(f: unsafe extern "C" fn(trap_frame: &mut TrapFrame)) {
+pub unsafe fn register_exception_handler(f: unsafe extern "C" fn()) {
     expts()[per_cpu_offset()].handler = f;
 }
 

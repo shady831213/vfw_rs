@@ -93,6 +93,14 @@ impl InterruptVector {
             (self.handler)();
         }
     }
+
+    pub unsafe fn handle_or_dummy(&self) {
+        if self.reserved == 0 {
+            dummy_trap_handler();
+        } else {
+            (self.handler)();
+        }
+    }
 }
 
 pub union ExceptionVector {
@@ -119,7 +127,9 @@ pub fn default_trap_handler() {
     );
 }
 
-const INT_VECTOR_LEN: usize = 12;
+pub fn dummy_trap_handler() {}
+
+pub(crate) const INT_VECTOR_LEN: usize = 12;
 
 #[no_mangle]
 extern "C" fn start_trap_rust() {
@@ -145,7 +155,7 @@ pub(crate) fn expts() -> &'static mut [ExceptionVector] {
 }
 
 #[inline]
-fn interrupts() -> &'static mut [[InterruptVector; INT_VECTOR_LEN]] {
+pub(crate) fn interrupts() -> &'static mut [[InterruptVector; INT_VECTOR_LEN]] {
     crate::relocation!(mut __INTERRUPTS: [[InterruptVector; INT_VECTOR_LEN]; PER_CPU_LEN])
 }
 

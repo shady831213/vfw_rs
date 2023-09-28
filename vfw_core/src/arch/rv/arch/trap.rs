@@ -1,7 +1,8 @@
 use crate::*;
-use fast_trap::{FastContext, FastResult};
+use fast_trap::{EntireContext, EntireResult, FastContext, FastResult, FlowContext};
+use paste::paste;
 use riscv::register::{
-    mcause::{self, Exception as E, Trap as T},
+    mcause::{self, Exception as E, Interrupt, Trap as T},
     mepc, mstatus,
 };
 
@@ -102,10 +103,32 @@ mod arch {
     }
 }
 
+macro_rules! on_vfw_stack {
+    ($name:ident, $entry: ident) => {
+        paste! {
+            #[naked]
+            unsafe extern "C" fn [<$name _on_vfw_stack>]() {
+                core::arch::asm!(
+                    exchange!(),
+                    push_stack!(1),
+                    save!(ra => sp[0]),
+                    "call {handler}",
+                    load!(sp[0] => ra),
+                    pop_stack!(1),
+                    exchange!(),
+                    "ret",
+                    handler    = sym $entry,
+                    options(noreturn),
+                )
+            }
+        }
+    };
+}
+
 const VFW_CALL: usize = 10;
 
 #[inline(always)]
-unsafe fn to_other_ctx(ctx: &fast_trap::FlowContext) {
+unsafe fn to_other_ctx(ctx: &FlowContext) {
     core::arch::asm!(
         "   mv         gp, {gp}
             mv         tp, {tp}
@@ -169,39 +192,92 @@ pub(crate) extern "C" fn vfw_fast_handler(
                     }
                     break vfw_call_handler(ctx, a1, a2, a3, a4, a5, a6, a7);
                 }
-                T::Exception(e) => match state {
+                T::Exception(_) => match state {
                     crate::hsm::HsmState::Stopped => vfw_idle(),
                     _ => {
-                        unsafe { exception_handler_wrapper() };
-                        break ctx.restore();
+                        break vfw_exception_handler(ctx, a1, a2, a3, a4, a5, a6, a7);
                     }
                 },
-                T::Interrupt(i) => {
-                    todo!()
-                }
+                T::Interrupt(_) => break ctx.continue_with(vfw_interrupt_handler, ()),
             },
         }
     }
 }
 
-#[naked]
-pub unsafe extern "C" fn exception_handler_wrapper() {
-    core::arch::asm!(
-        exchange!(),
-        push_stack!(1),
-        save!(ra => sp[0]),
-        "call {handler}",
-        load!(sp[0] => ra),
-        pop_stack!(1),
-        exchange!(),
-        "ret",
-        handler    = sym exception_handler,
-        options(noreturn),
-    )
+#[inline(always)]
+pub(crate) extern "C" fn vfw_exception_handler(
+    mut ctx: FastContext,
+    a1: usize,
+    a2: usize,
+    a3: usize,
+    a4: usize,
+    a5: usize,
+    a6: usize,
+    a7: usize,
+) -> FastResult {
+    unsafe {
+        core::arch::asm!(
+            "   mv         a0, {ctx}
+        mv a1, {a1}
+        mv a2, {a2}
+        mv a3, {a3}
+        mv a4, {a4}
+        mv a5, {a5}
+        mv a6, {a6}
+        mv a7, {a7}
+        ",
+            ctx = in(reg) ctx.regs(),
+            a1 = in(reg) a1,
+            a2 = in(reg) a2,
+            a3 = in(reg) a3,
+            a4 = in(reg) a4,
+            a5 = in(reg) a5,
+            a6 = in(reg) a6,
+            a7 = in(reg) a7,
+            options(nomem, nostack),
+        );
+        exception_on_vfw_stack();
+    };
+    ctx.restore()
 }
 
-unsafe extern "C" fn exception_handler() {
+on_vfw_stack!(exception, exception_handler);
+
+#[inline(always)]
+unsafe extern "C" fn exception_handler(
+    ctx: FastContext,
+    a1: usize,
+    a2: usize,
+    a3: usize,
+    a4: usize,
+    a5: usize,
+    a6: usize,
+    a7: usize,
+) {
     super::super::standard::trap::expts()[per_cpu_offset()].handle();
+}
+
+#[inline(always)]
+pub(crate) extern "C" fn vfw_interrupt_handler(_ctx: EntireContext<()>) -> EntireResult {
+    unsafe { interrupt_on_vfw_stack() };
+    EntireResult::Restore
+}
+
+on_vfw_stack!(interrupt, interrupt_handler);
+
+#[inline(always)]
+unsafe extern "C" fn interrupt_handler(_ctx: EntireContext<()>) {
+    let code = mcause::read().code();
+    if code < super::super::standard::trap::INT_VECTOR_LEN {
+        let h = &super::super::standard::trap::interrupts()[per_cpu_offset()][code];
+        if Interrupt::from(code) == Interrupt::MachineTimer {
+            h.handle_or_dummy();
+        } else {
+            h.handle();
+        }
+    } else {
+        super::super::standard::trap::default_trap_handler();
+    }
 }
 
 // boot sp can not include handler call stack

@@ -9,6 +9,7 @@ links = "vfw_core"
 [dependencies]
 buddy_system_allocator = "0.9"
 vfw_primitives = {path = "../vfw_primitives"}
+paste = "1"
 
 [target.'cfg(any(target_arch = "riscv32", target_arch = "riscv64"))'.dependencies]
 riscv = { version = "0.10" }

@@ -21,3 +21,4 @@ mod msg;
 pub use msg::*;
 mod stack;
 pub use stack::*;
+pub extern crate fast_trap;

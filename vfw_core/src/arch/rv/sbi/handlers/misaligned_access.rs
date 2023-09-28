@@ -1,13 +1,14 @@
-use super::super::super::trap::TrapFrame;
 use super::super::access::*;
 use super::SbiHandlerError;
+use super::*;
+use fast_trap::FastContext;
 use riscv::register::{mepc, mtval};
 
-pub fn misaligned_store_handler(trap_frame: &mut TrapFrame) -> Result<(), SbiHandlerError> {
+pub fn misaligned_store_handler(mut ctx: FastContext) -> Result<(), SbiHandlerError> {
     let vaddr = mepc::read();
     let ins = unsafe { get_insn(vaddr) };
     let src = ((ins >> 20) & 0x1f) as u8;
-    let data = trap_frame.get(src);
+    let data = get_reg(ctx.regs(), src);
     let addr = mtval::read() as usize;
     let func = ((ins >> 12) & 0x7) as usize;
     if ins & 0x7f == 0b0100011 {
@@ -67,7 +68,7 @@ pub fn misaligned_store_handler(trap_frame: &mut TrapFrame) -> Result<(), SbiHan
     }
 }
 
-pub fn misaligned_load_handler(trap_frame: &mut TrapFrame) -> Result<(), SbiHandlerError> {
+pub fn misaligned_load_handler(mut ctx: FastContext) -> Result<(), SbiHandlerError> {
     let vaddr = mepc::read();
     let ins = unsafe { get_insn(vaddr) };
     let addr = mtval::read() as usize;
@@ -144,7 +145,7 @@ pub fn misaligned_load_handler(trap_frame: &mut TrapFrame) -> Result<(), SbiHand
                 _ => 0,
             }
         };
-        trap_frame.update(rd, data);
+        update_reg(ctx.regs(), rd, data);
         mepc::write(mepc::read().wrapping_add(4));
         Ok(())
     } else if ins & 0xe003 == 0x4000 {
@@ -166,7 +167,7 @@ pub fn misaligned_load_handler(trap_frame: &mut TrapFrame) -> Result<(), SbiHand
                 _ => {}
             }
         };
-        trap_frame.update(rd, data);
+        update_reg(ctx.regs(), rd, data);
         mepc::write(mepc::read().wrapping_add(2));
         Ok(())
     } else if ins & 0xe003 == 0x6000 {
@@ -196,7 +197,7 @@ pub fn misaligned_load_handler(trap_frame: &mut TrapFrame) -> Result<(), SbiHand
                     _ => {}
                 }
             }
-            trap_frame.update(rd, data);
+            update_reg(ctx.regs(), rd, data);
             mepc::write(mepc::read().wrapping_add(2));
             Ok(())
         }

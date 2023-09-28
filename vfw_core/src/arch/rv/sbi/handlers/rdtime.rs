@@ -1,5 +1,6 @@
-use super::super::super::trap::TrapFrame;
 use super::SbiHandlerError;
+use super::*;
+use fast_trap::FastContext;
 use riscv::register::{mepc, mstatus, scounteren};
 pub trait SbiTimer: rustsbi::Timer {
     fn get_time(&self) -> u64;
@@ -8,7 +9,7 @@ pub trait SbiTimer: rustsbi::Timer {
 pub fn rdtime_handler<T: SbiTimer>(
     ins: u32,
     timer: &T,
-    trap_frame: &mut TrapFrame,
+    mut ctx: FastContext,
 ) -> Result<(), SbiHandlerError> {
     if ins & 0xFFFFF07F == 0xC0102073 {
         // rdtime
@@ -20,7 +21,7 @@ pub fn rdtime_handler<T: SbiTimer>(
         };
         if counteren {
             let time_usize = timer.get_time() as usize;
-            trap_frame.update(rd, time_usize);
+            update_reg(ctx.regs(), rd, time_usize);
         }
         mepc::write(mepc::read().wrapping_add(4));
         Ok(())
@@ -34,7 +35,7 @@ pub fn rdtime_handler<T: SbiTimer>(
         };
         if counteren {
             let time_usize = (timer.get_time() >> 32) as usize;
-            trap_frame.update(rd, time_usize);
+            update_reg(ctx.regs(), rd, time_usize);
         }
         mepc::write(mepc::read().wrapping_add(4));
         Ok(())

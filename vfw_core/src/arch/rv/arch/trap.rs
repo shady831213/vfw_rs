@@ -186,17 +186,17 @@ pub(crate) extern "C" fn vfw_fast_handler(
                 break boot(ctx, hartid(), &task);
             }
             Err(state) => match mcause::read().cause() {
-                T::Exception(E::Unknown) if mcause::read().bits() == VFW_CALL => {
-                    unsafe {
-                        mstatus::set_mpp(mstatus::MPP::Machine);
-                    }
-                    break vfw_call_handler(ctx, a1, a2, a3, a4, a5, a6, a7);
-                }
-                T::Exception(_) => match state {
+                T::Exception(e) => match state {
                     crate::hsm::HsmState::Stopped => vfw_idle(),
-                    _ => {
-                        break vfw_exception_handler(ctx, a1, a2, a3, a4, a5, a6, a7);
-                    }
+                    _ => match e {
+                        E::Unknown if mcause::read().bits() == VFW_CALL => {
+                            unsafe {
+                                mstatus::set_mpp(mstatus::MPP::Machine);
+                            }
+                            break vfw_call_handler(ctx, a1, a2, a3, a4, a5, a6, a7);
+                        }
+                        _ => break vfw_exception_handler(ctx, a1, a2, a3, a4, a5, a6, a7),
+                    },
                 },
                 T::Interrupt(_) => break ctx.continue_with(vfw_interrupt_handler, ()),
             },

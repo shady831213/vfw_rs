@@ -19,17 +19,17 @@ unsafe extern "C" fn trap_vec() {
         ".option push",
         ".option norvc",
         "j {default}", // exception
-        "j _start_trap", // supervisor software
-        "j _start_trap", // reserved
-        "j _start_trap ",  // machine    software
-        "j _start_trap", // reserved
-        "j _start_trap", // supervisor timer
-        "j _start_trap", // reserved
-        "j _start_trap",  // machine    timer
-        "j _start_trap", // reserved
-        "j _start_trap", // supervisor external
-        "j _start_trap", // reserved
-        "j _start_trap", // machine    external
+        "j {default}", // supervisor software
+        "j {default}", // reserved
+        "j {default} ",  // machine    software
+        "j {default}", // reserved
+        "j {default}", // supervisor timer
+        "j {default}", // reserved
+        "j {default}",  // machine    timer
+        "j {default}", // reserved
+        "j {default}", // supervisor external
+        "j {default}", // reserved
+        "j {default}", // machine    external
         ".option pop",
         default = sym fast_trap::trap_entry,
         options(noreturn)

@@ -17,7 +17,8 @@ mod hw_thread_imp {
     #[link_section = ".synced.bss"]
     static HW_TIDS: AtomicU16 = AtomicU16::new(0);
 
-    pub(super) fn get_task_id() -> u16 {
+    #[inline]
+    pub(crate) fn get_task_id() -> u16 {
         HW_TIDS.fetch_add(1, Ordering::SeqCst)
     }
 
@@ -133,7 +134,8 @@ mod hw_thread_imp {
     feature = "max_cores_2"
 )))]
 mod hw_thread_stub {
-    pub(super) fn get_task_id() -> u16 {
+    #[inline]
+    pub(crate) fn get_task_id() -> u16 {
         0
     }
 
@@ -249,8 +251,4 @@ macro_rules! try_fork_on {
     let args = [$($arg as usize,)*];
     crate::_try_fork_on($target as usize, $entry as usize, &args)
 }};
-}
-#[inline]
-pub(super) fn start_main(entry: usize) {
-    arch::_try_fork_on(0, get_task_id(), entry, 0, 0 as *const usize);
 }

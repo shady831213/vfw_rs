@@ -1,7 +1,7 @@
 use crate::arch::arch;
 use crate::exit;
 use crate::hsm::HsmCell;
-use crate::hw_thread::start_main;
+use crate::hw_thread::get_task_id;
 use crate::init_heap;
 use crate::msg::MsgCell;
 use crate::Stack;
@@ -107,6 +107,11 @@ pub const MAX_CORES: usize = 1;
 
 #[export_name = "vfw_start"]
 fn vfw_start() {
+    if hartid() >= num_cores() || hartid() >= MAX_CORES {
+        loop {
+            wait_ipi();
+        }
+    }
     extern "C" {
         fn __boot_core_init();
     }
@@ -119,8 +124,24 @@ fn vfw_start() {
     if hartid() == 0 {
         init_bss();
         init_heap();
+        if num_cores() > MAX_CORES {
+            panic!(
+                "num_cores({}) > MAX_CORES({})! please check link script and features!",
+                num_cores(),
+                MAX_CORES
+            );
+        }
         unsafe { __boot_core_init() };
-        start_main(vfw_main as usize);
+        let mut _a0: usize = 0;
+        fork_call(
+            &mut _a0,
+            0,
+            get_task_id() as usize,
+            vfw_main as usize,
+            0,
+            0,
+            0,
+        );
     }
     unsafe {
         fast_trap::trap_entry();

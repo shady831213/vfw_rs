@@ -1,14 +1,6 @@
 use crate::{per_cpu_offset, PER_CPU_LEN};
 use riscv::register::{mcause, mepc, mtval};
 
-#[cfg(target_pointer_width = "32")]
-core::arch::global_asm!(include_str!("rv32.S"));
-
-#[cfg(target_pointer_width = "64")]
-core::arch::global_asm!(include_str!("rv64.S"));
-
-core::arch::global_asm!(include_str!("trap.S"));
-
 #[derive(Debug)]
 #[repr(C)]
 pub struct TrapFrame {

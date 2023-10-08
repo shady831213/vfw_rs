@@ -2,13 +2,13 @@
 #define __VFW_CORE_H__
 #include <stdint.h>
 #include <vfw_primitives.h>
-extern unsigned int num_cores();
-extern unsigned int hartid();
-extern unsigned int save_flag();
-extern void restore_flag(unsigned int flag);
-extern void mem_wb(unsigned int start, unsigned int size);
-extern void mem_flush(unsigned int start, unsigned int size);
-extern void mem_invalid(unsigned int start, unsigned int size);
+extern uintptr_t num_cores();
+extern uintptr_t hartid();
+extern uintptr_t save_flag();
+extern void restore_flag(uintptr_t flag);
+extern void mem_wb(uintptr_t start, uintptr_t size);
+extern void mem_flush(uintptr_t start, uintptr_t size);
+extern void mem_invalid(uintptr_t start, uintptr_t size);
 extern void exit(int code);
 
 

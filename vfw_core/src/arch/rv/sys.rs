@@ -2,12 +2,14 @@ pub fn rv_wait_ipi() {
     use riscv::asm::wfi;
     use riscv::register::mie;
     unsafe {
+        let flag = crate::save_flag();
         let sie = mie::read().msoft();
         mie::set_msoft();
         wfi();
         if !sie {
             mie::clear_msoft();
         }
+        crate::restore_flag(flag);
     }
 }
 

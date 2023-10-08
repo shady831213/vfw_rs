@@ -105,6 +105,14 @@ pub const MAX_CORES: usize = 128;
 )))]
 pub const MAX_CORES: usize = 1;
 
+#[linkage = "weak"]
+#[no_mangle]
+extern "C" fn __pre_init() {}
+
+#[linkage = "weak"]
+#[no_mangle]
+extern "C" fn __post_init() {}
+
 #[export_name = "vfw_start"]
 fn vfw_start() {
     if hartid() >= num_cores() || hartid() >= MAX_CORES {
@@ -115,12 +123,10 @@ fn vfw_start() {
     extern "C" {
         fn __boot_core_init();
     }
-    extern "C" {
-        fn __pre_init();
-    }
+    __pre_init();
     Stack.load_as_stack(cpu_ctx(hartid()).context_ptr(), arch::vfw_fast_handler);
     arch::init_fast_trap();
-    unsafe { __pre_init() };
+    __post_init();
     if hartid() == 0 {
         init_bss();
         init_heap();
@@ -170,7 +176,7 @@ impl core::convert::TryFrom<usize> for VfwCall {
 pub(crate) fn vfw_idle() {
     wait_ipi();
     unsafe {
-        if *cpu_ctx(hartid()).ipi_msg.local().recv() == IPI_HSM {
+        if let Some(IPI_HSM) = cpu_ctx(hartid()).ipi_msg.local().recv() {
             clear_ipi(hartid());
             cpu_ctx(hartid()).ipi_msg.local().done();
         }
@@ -219,7 +225,7 @@ pub(crate) fn fork_call(
         unsafe { task.args[i] = *((args + i * core::mem::size_of::<usize>()) as *const usize) };
     }
     let ret = cpu_ctx(hart_target).hsm.remote().start(task);
-    if ret {
+    if ret && hart_target != hartid {
         cpu_ctx(hart_target).ipi_msg.remote().send(IPI_HSM);
         send_ipi(hart_target);
     }
@@ -322,7 +328,7 @@ impl HartContext {
         HartContext {
             trap: FlowContext::ZERO,
             hsm: HsmCell::new(),
-            ipi_msg: MsgCell::new(0),
+            ipi_msg: MsgCell::new(),
             current: TaskId::new(0, 0),
         }
     }

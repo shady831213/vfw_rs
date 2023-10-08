@@ -1,5 +1,3 @@
-use crate::arch::arch;
-
 #[cfg(any(
     feature = "max_cores_128",
     feature = "max_cores_64",
@@ -10,7 +8,7 @@ use crate::arch::arch;
     feature = "max_cores_2"
 ))]
 mod hw_thread_imp {
-    use super::*;
+    use crate::arch::arch;
     use crate::TaskId;
     use core::sync::atomic::{AtomicU16, Ordering};
 

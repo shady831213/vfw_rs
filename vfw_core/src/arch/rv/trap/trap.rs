@@ -177,7 +177,7 @@ pub(crate) extern "C" fn vfw_fast_handler(
 
             // this sp including handler sturct + fast stack automatically
             to_other_ctx(regs);
-            FastResult::Restore
+            ctx.restore()
         }
     }
     loop {
@@ -270,7 +270,7 @@ unsafe extern "C" fn interrupt_handler(_ctx: EntireContext<()>) {
     let code = mcause::read().code();
     if code < super::interrupt::INT_VECTOR_LEN {
         let h = &super::interrupt::interrupts()[per_cpu_offset()][code];
-        if Interrupt::from(code) == Interrupt::MachineTimer {
+        if Interrupt::from(code) == Interrupt::MachineSoft {
             h.handle_or_dummy();
         } else {
             h.handle();

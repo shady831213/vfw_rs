@@ -20,15 +20,15 @@ mod msg_imp {
     pub struct MsgCell<T> {
         next_ticket: AtomicUsize,
         next_serving: AtomicUsize,
-        pub(super) val: UnsafeCell<T>,
+        pub(super) val: UnsafeCell<Option<T>>,
     }
 
     impl<T> MsgCell<T> {
-        pub const fn new(data: T) -> Self {
+        pub const fn new() -> Self {
             Self {
                 next_ticket: AtomicUsize::new(0),
                 next_serving: AtomicUsize::new(0),
-                val: UnsafeCell::new(data),
+                val: UnsafeCell::new(None),
             }
         }
     }
@@ -40,14 +40,14 @@ mod msg_imp {
             while self.0.next_serving.load(Ordering::Acquire) != ticket {
                 spin_loop();
             }
-            unsafe { *self.0.val.get() = t };
+            unsafe { *self.0.val.get() = Some(t) };
         }
     }
 
     impl<'a, T> LocalMsgCell<'a, T> {
         #[inline(always)]
         pub fn done(&self) {
-            self.0.next_serving.fetch_add(1, Ordering::Release);
+            self.0.next_serving.fetch_add(1, Ordering::AcqRel);
         }
     }
 }
@@ -66,15 +66,15 @@ mod msg_no_atomic {
     pub struct MsgCell<T> {
         next_ticket: UnsafeCell<usize>,
         next_serving: UnsafeCell<usize>,
-        pub(super) val: UnsafeCell<T>,
+        pub(super) val: UnsafeCell<Option<T>>,
     }
 
     impl<T> MsgCell<T> {
-        pub const fn new(data: T) -> Self {
+        pub const fn new() -> Self {
             Self {
                 next_ticket: UnsafeCell::new(0),
                 next_serving: UnsafeCell::new(0),
-                val: UnsafeCell::new(data),
+                val: UnsafeCell::new(None),
             }
         }
     }
@@ -88,7 +88,7 @@ mod msg_no_atomic {
                 while *self.0.next_serving.get() != ticket {
                     spin_loop();
                 }
-                *self.0.val.get() = t;
+                *self.0.val.get() = Some(t);
             }
         }
     }
@@ -140,7 +140,7 @@ impl<T> MsgCell<T> {
 
 impl<'a, T> LocalMsgCell<'a, T> {
     #[inline(always)]
-    pub fn recv(&self) -> &'a T {
-        unsafe { &*self.0.val.get() }
+    pub fn recv(&self) -> Option<T> {
+        unsafe { (*self.0.val.get()).take() }
     }
 }

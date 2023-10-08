@@ -48,6 +48,10 @@ impl Clint {
         io_write32!(self.base + (hart_id << 2), 1)
     }
 
+    pub fn read_soft(&self, hart_id: usize) -> bool {
+        io_read32!(self.base + (hart_id << 2)) != 0
+    }
+
     pub fn clear_soft(&self, hart_id: usize) {
         io_write32!(self.base + (hart_id << 2), 0)
     }

@@ -13,7 +13,7 @@ paste = "1"
 
 [target.'cfg(any(target_arch = "riscv32", target_arch = "riscv64"))'.dependencies]
 riscv = { version = "0.10" }
-rustsbi = "0.2"
+rustsbi = "0.3"
 fast-trap = { version = "=0.0.1", features = ["riscv-m"] }
 
 [target.'cfg(not(any(target_arch = "riscv32", target_arch = "riscv64")))'.dependencies]

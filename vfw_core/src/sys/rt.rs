@@ -4,8 +4,8 @@ use crate::hsm::HsmCell;
 use crate::hw_thread::get_task_id;
 use crate::init_heap;
 use crate::msg::MsgCell;
-use crate::Stack;
 use crate::{clear_ipi, send_ipi, wait_ipi};
+use crate::{Stack, VfwStack};
 use core::ptr::NonNull;
 use fast_trap::FlowContext;
 
@@ -124,7 +124,7 @@ fn vfw_start() {
         fn __boot_core_init();
     }
     __pre_init();
-    Stack.load_as_stack(cpu_ctx(hartid()).context_ptr(), arch::vfw_fast_handler);
+    VfwStack.load_as_stack(cpu_ctx(hartid()).context_ptr(), arch::vfw_fast_handler);
     arch::init_fast_trap();
     __post_init();
     if hartid() == 0 {

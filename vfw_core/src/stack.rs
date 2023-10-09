@@ -6,27 +6,32 @@ extern "C" {
     static _provide_base: usize;
 }
 
-pub struct Stack;
-impl Stack {
+pub trait Stack {
+    fn start(&self) -> usize;
+    fn size(&self) -> usize;
     #[inline(always)]
-    pub fn start(&self) -> usize {
-        stack_start()
-    }
-    #[inline(always)]
-    pub fn size(&self) -> usize {
-        stack_size()
-    }
-    #[inline(always)]
-    pub fn end(&self) -> usize {
+    fn end(&self) -> usize {
         self.start() - self.size()
     }
     #[inline(always)]
-    pub fn load_as_stack(&self, context_ptr: NonNull<FlowContext>, fast_handler: FastHandler) {
+    fn load_as_stack(&self, context_ptr: NonNull<FlowContext>, fast_handler: FastHandler) {
         core::mem::forget(
             FreeTrapStack::new(self.end()..self.start(), |_| {}, context_ptr, fast_handler)
                 .unwrap()
                 .load(),
         );
+    }
+}
+
+pub struct VfwStack;
+impl Stack for VfwStack {
+    #[inline(always)]
+    fn start(&self) -> usize {
+        stack_start()
+    }
+    #[inline(always)]
+    fn size(&self) -> usize {
+        stack_size()
     }
 }
 

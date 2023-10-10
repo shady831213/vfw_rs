@@ -124,7 +124,7 @@ fn vfw_start() {
         fn __boot_core_init();
     }
     __pre_init();
-    VfwStack.load_as_stack(cpu_ctx(hartid()).context_ptr(), arch::vfw_fast_handler);
+    VfwStack.load_context(cpu_ctx(hartid()).context_ptr(), arch::vfw_fast_handler);
     arch::init_fast_trap();
     __post_init();
     if hartid() == 0 {

@@ -14,7 +14,7 @@ pub trait Stack {
         self.start() - self.size()
     }
     #[inline(always)]
-    fn load_as_stack(&self, context_ptr: NonNull<FlowContext>, fast_handler: FastHandler) {
+    fn load_context(&self, context_ptr: NonNull<FlowContext>, fast_handler: FastHandler) {
         core::mem::forget(
             FreeTrapStack::new(self.end()..self.start(), |_| {}, context_ptr, fast_handler)
                 .unwrap()

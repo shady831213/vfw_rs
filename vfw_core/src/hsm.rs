@@ -8,7 +8,7 @@ unsafe impl<T: Send> Sync for HsmCell<T> {}
 unsafe impl<T: Send> Send for HsmCell<T> {}
 
 // avoid to depend arch
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[repr(usize)]
 pub enum HsmState {
     Started = 0,

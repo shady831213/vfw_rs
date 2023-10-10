@@ -15,7 +15,7 @@ pub enum SbiHandlerError {
 
 pub fn sbi_handler_panic() {
     panic!(
-        "Unhandled exception! mstatus: {:x?}, mcactx.regs()use: {:?}, mepc: {:08x?}, insn:{:x},  mtval: {:08x?}",
+        "Unhandled exception! mstatus: {:x?}, mcause: {:?}, mepc: {:08x?}, insn:{:x},  mtval: {:08x?}",
         mstatus::read(),
         mcause::read().cause(),
         mepc::read(),

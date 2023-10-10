@@ -6,8 +6,8 @@ pub(super) mod trap;
 use riscv::register::{mcause, mepc, mtval};
 fn default_trap_handler() {
     panic!(
-        "Unexpected trap: cause:{:x?}, mepc:{:x}, mtval:{:x}",
-        mcause::read(),
+        "Unexpected trap: cause:{:?}, mepc:{:x}, mtval:{:x}",
+        mcause::read().cause(),
         mepc::read(),
         mtval::read()
     );

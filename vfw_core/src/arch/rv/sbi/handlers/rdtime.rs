@@ -7,9 +7,9 @@ pub trait SbiTimer: rustsbi::Timer {
 }
 
 pub fn rdtime_handler<T: SbiTimer>(
+    ctx: &mut FastContext,
     ins: u32,
     timer: &T,
-    mut ctx: FastContext,
 ) -> Result<(), SbiHandlerError> {
     if ins & 0xFFFFF07F == 0xC0102073 {
         // rdtime

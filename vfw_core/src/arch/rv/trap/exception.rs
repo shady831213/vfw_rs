@@ -36,8 +36,22 @@ impl ExceptionVector {
     }
 }
 
+#[inline(always)]
+pub unsafe extern "C" fn exception_handler(
+    ctx: FastContext,
+    a1: usize,
+    a2: usize,
+    a3: usize,
+    a4: usize,
+    a5: usize,
+    a6: usize,
+    a7: usize,
+) {
+    expts()[per_cpu_offset()].handle(ctx, a1, a2, a3, a4, a5, a6, a7);
+}
+
 #[inline]
-pub(super) fn expts() -> &'static mut [ExceptionVector] {
+fn expts() -> &'static mut [ExceptionVector] {
     crate::relocation!(mut __EXCEPTIONS: [ExceptionVector; PER_CPU_LEN])
 }
 

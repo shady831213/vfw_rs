@@ -2,7 +2,7 @@ use crate::*;
 use fast_trap::{EntireContext, EntireResult, FastContext, FastResult, FlowContext};
 use paste::paste;
 use riscv::register::{
-    mcause::{self, Exception as E, Interrupt, Trap as T},
+    mcause::{self, Exception as E, Trap as T},
     mstatus,
 };
 
@@ -241,21 +241,8 @@ extern "C" fn vfw_exception_handler(
     ctx.restore()
 }
 
+use super::exception_handler;
 on_vfw_stack!(exception, exception_handler);
-
-#[inline(always)]
-unsafe extern "C" fn exception_handler(
-    ctx: FastContext,
-    a1: usize,
-    a2: usize,
-    a3: usize,
-    a4: usize,
-    a5: usize,
-    a6: usize,
-    a7: usize,
-) {
-    super::exception::expts()[per_cpu_offset()].handle(ctx, a1, a2, a3, a4, a5, a6, a7);
-}
 
 #[inline(always)]
 extern "C" fn vfw_interrupt_handler(_ctx: EntireContext<()>) -> EntireResult {
@@ -263,22 +250,8 @@ extern "C" fn vfw_interrupt_handler(_ctx: EntireContext<()>) -> EntireResult {
     EntireResult::Restore
 }
 
+use super::interrupt_handler;
 on_vfw_stack!(interrupt, interrupt_handler);
-
-#[inline(always)]
-unsafe extern "C" fn interrupt_handler(_ctx: EntireContext<()>) {
-    let code = mcause::read().code();
-    if code < super::interrupt::INT_VECTOR_LEN {
-        let h = &super::interrupt::interrupts()[per_cpu_offset()][code];
-        if Interrupt::from(code) == Interrupt::MachineSoft {
-            h.handle_or_dummy();
-        } else {
-            h.handle();
-        }
-    } else {
-        super::default_trap_handler();
-    }
-}
 
 // boot sp can not include handler call stack
 #[inline(always)]

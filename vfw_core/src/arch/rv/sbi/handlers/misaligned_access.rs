@@ -4,7 +4,7 @@ use super::*;
 use fast_trap::FastContext;
 use riscv::register::{mepc, mtval};
 
-pub fn misaligned_store_handler(mut ctx: FastContext) -> Result<(), SbiHandlerError> {
+pub fn misaligned_store_handler(ctx: &mut FastContext) -> Result<(), SbiHandlerError> {
     let vaddr = mepc::read();
     let ins = unsafe { get_insn(vaddr) };
     let src = ((ins >> 20) & 0x1f) as u8;
@@ -68,7 +68,7 @@ pub fn misaligned_store_handler(mut ctx: FastContext) -> Result<(), SbiHandlerEr
     }
 }
 
-pub fn misaligned_load_handler(mut ctx: FastContext) -> Result<(), SbiHandlerError> {
+pub fn misaligned_load_handler(ctx: &mut FastContext) -> Result<(), SbiHandlerError> {
     let vaddr = mepc::read();
     let ins = unsafe { get_insn(vaddr) };
     let addr = mtval::read() as usize;

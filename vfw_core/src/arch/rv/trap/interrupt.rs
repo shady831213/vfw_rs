@@ -1,5 +1,6 @@
 use super::{default_trap_handler, dummy_trap_handler};
 use crate::{per_cpu_offset, PER_CPU_LEN};
+use riscv::register::mcause;
 
 #[repr(usize)]
 pub enum Interrupt {
@@ -37,10 +38,25 @@ impl InterruptVector {
     }
 }
 
-pub(super) const INT_VECTOR_LEN: usize = 12;
+const INT_VECTOR_LEN: usize = 12;
+
+#[inline(always)]
+pub unsafe extern "C" fn interrupt_handler(_ctx: fast_trap::EntireContext<()>) {
+    let code = mcause::read().code();
+    if code < INT_VECTOR_LEN {
+        let h = &interrupts()[per_cpu_offset()][code];
+        if mcause::Interrupt::from(code) == mcause::Interrupt::MachineSoft {
+            h.handle_or_dummy();
+        } else {
+            h.handle();
+        }
+    } else {
+        super::default_trap_handler();
+    }
+}
 
 #[inline]
-pub(super) fn interrupts() -> &'static mut [[InterruptVector; INT_VECTOR_LEN]] {
+fn interrupts() -> &'static mut [[InterruptVector; INT_VECTOR_LEN]] {
     crate::relocation!(mut __INTERRUPTS: [[InterruptVector; INT_VECTOR_LEN]; PER_CPU_LEN])
 }
 

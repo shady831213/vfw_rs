@@ -3,6 +3,7 @@ use crate::{per_cpu_offset, PER_CPU_LEN};
 use riscv::register::mcause;
 
 #[repr(usize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Interrupt {
     UserSoft = 0,
     SupervisorSoft = 1,
@@ -13,6 +14,23 @@ pub enum Interrupt {
     UserExternal = 8,
     SupervisorExternal = 9,
     MachineExternal = 11,
+}
+impl core::convert::From<mcause::Interrupt> for Interrupt {
+    #[inline]
+    fn from(cause: mcause::Interrupt) -> Self {
+        match cause {
+            mcause::Interrupt::UserSoft => Interrupt::UserSoft,
+            mcause::Interrupt::SupervisorSoft => Interrupt::SupervisorSoft,
+            mcause::Interrupt::MachineSoft => Interrupt::MachineSoft,
+            mcause::Interrupt::UserTimer => Interrupt::UserTimer,
+            mcause::Interrupt::SupervisorTimer => Interrupt::SupervisorTimer,
+            mcause::Interrupt::MachineTimer => Interrupt::MachineTimer,
+            mcause::Interrupt::UserExternal => Interrupt::UserExternal,
+            mcause::Interrupt::SupervisorExternal => Interrupt::SupervisorExternal,
+            mcause::Interrupt::MachineExternal => Interrupt::MachineExternal,
+            mcause::Interrupt::Unknown => panic!("unknown interrupt cause!"),
+        }
+    }
 }
 
 pub union InterruptVector {
@@ -41,11 +59,12 @@ impl InterruptVector {
 const INT_VECTOR_LEN: usize = 12;
 
 #[inline(always)]
-pub unsafe extern "C" fn interrupt_handler(_ctx: fast_trap::EntireContext<()>) {
-    let code = mcause::read().code();
-    if code < INT_VECTOR_LEN {
-        let h = &interrupts()[per_cpu_offset()][code];
-        if mcause::Interrupt::from(code) == mcause::Interrupt::MachineSoft {
+pub unsafe extern "C" fn interrupt_handler(ctx: fast_trap::EntireContext<mcause::Interrupt>) {
+    let (_, mail) = ctx.split();
+    let cause = Interrupt::from(mail.get());
+    if (cause as usize) < INT_VECTOR_LEN {
+        let h = &interrupts()[per_cpu_offset()][cause as usize];
+        if cause == Interrupt::MachineSoft {
             h.handle_or_dummy();
         } else {
             h.handle();

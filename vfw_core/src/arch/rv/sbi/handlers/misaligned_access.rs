@@ -1,14 +1,14 @@
 use super::super::access::*;
 use super::SbiHandlerError;
 use super::*;
-use fast_trap::FastContext;
+use fast_trap::FlowContext;
 use riscv::register::{mepc, mtval};
 
-pub fn misaligned_store_handler(ctx: &mut FastContext) -> Result<(), SbiHandlerError> {
+pub fn misaligned_store_handler(ctx: &mut FlowContext) -> Result<(), SbiHandlerError> {
     let vaddr = mepc::read();
     let ins = unsafe { get_insn(vaddr) };
     let src = ((ins >> 20) & 0x1f) as u8;
-    let data = get_reg(ctx.regs(), src);
+    let data = get_reg(ctx, src);
     let addr = mtval::read() as usize;
     let func = ((ins >> 12) & 0x7) as usize;
     if ins & 0x7f == 0b0100011 {
@@ -68,7 +68,7 @@ pub fn misaligned_store_handler(ctx: &mut FastContext) -> Result<(), SbiHandlerE
     }
 }
 
-pub fn misaligned_load_handler(ctx: &mut FastContext) -> Result<(), SbiHandlerError> {
+pub fn misaligned_load_handler(ctx: &mut FlowContext) -> Result<(), SbiHandlerError> {
     let vaddr = mepc::read();
     let ins = unsafe { get_insn(vaddr) };
     let addr = mtval::read() as usize;
@@ -145,7 +145,7 @@ pub fn misaligned_load_handler(ctx: &mut FastContext) -> Result<(), SbiHandlerEr
                 _ => 0,
             }
         };
-        update_reg(ctx.regs(), rd, data);
+        update_reg(ctx, rd, data);
         mepc::write(mepc::read().wrapping_add(4));
         Ok(())
     } else if ins & 0xe003 == 0x4000 {
@@ -167,7 +167,7 @@ pub fn misaligned_load_handler(ctx: &mut FastContext) -> Result<(), SbiHandlerEr
                 _ => {}
             }
         };
-        update_reg(ctx.regs(), rd, data);
+        update_reg(ctx, rd, data);
         mepc::write(mepc::read().wrapping_add(2));
         Ok(())
     } else if ins & 0xe003 == 0x6000 {
@@ -197,7 +197,7 @@ pub fn misaligned_load_handler(ctx: &mut FastContext) -> Result<(), SbiHandlerEr
                     _ => {}
                 }
             }
-            update_reg(ctx.regs(), rd, data);
+            update_reg(ctx, rd, data);
             mepc::write(mepc::read().wrapping_add(2));
             Ok(())
         }

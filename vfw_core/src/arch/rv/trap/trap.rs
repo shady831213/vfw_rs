@@ -147,7 +147,7 @@ unsafe fn to_other_ctx(ctx: &FlowContext) {
 //so vfw_fast_handler only handle machine level app
 #[inline(always)]
 pub(crate) extern "C" fn vfw_fast_handler(
-    ctx: FastContext,
+    mut ctx: FastContext,
     a1: usize,
     a2: usize,
     a3: usize,
@@ -198,7 +198,10 @@ pub(crate) extern "C" fn vfw_fast_handler(
                         _ => break vfw_exception_handler(ctx, a1, a2, a3, a4, a5, a6, a7),
                     },
                 },
-                T::Interrupt(_) => break ctx.continue_with(vfw_interrupt_handler, ()),
+                T::Interrupt(i) => {
+                    ctx.regs().a = [ctx.a0(), a1, a2, a3, a4, a5, a6, a7];
+                    break ctx.continue_with(vfw_interrupt_handler, i);
+                }
             },
         }
     }
@@ -245,7 +248,7 @@ use super::exception_handler;
 on_vfw_stack!(exception, exception_handler);
 
 #[inline(always)]
-extern "C" fn vfw_interrupt_handler(_ctx: EntireContext<()>) -> EntireResult {
+extern "C" fn vfw_interrupt_handler(_ctx: EntireContext<mcause::Interrupt>) -> EntireResult {
     unsafe { interrupt_on_vfw_stack() };
     EntireResult::Restore
 }

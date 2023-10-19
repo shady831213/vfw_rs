@@ -1,4 +1,4 @@
-use crate::cpu_ctx;
+use crate::{cpu_ctx, Task};
 use riscv::register::{mhartid, mstatus};
 
 pub(crate) fn hartid() -> usize {
@@ -28,5 +28,21 @@ pub(crate) fn init_fast_trap() {
         ", 
         gp = out(reg) cpu_ctx(hartid()).trap.gp,
         );
+    }
+}
+
+pub(crate) fn boot(task: &Task) {
+    unsafe {
+        core::arch::asm!(
+        "jalr ra,{0}",in(reg) task.entry,
+        in("a0") task.args[0],
+        in("a1") task.args[1],
+        in("a2") task.args[2],
+        in("a3") task.args[3],
+        in("a4") task.args[4],
+        in("a5") task.args[5],
+        in("a6") task.args[6],
+        in("a7") task.args[7],
+        clobber_abi("C"),);
     }
 }

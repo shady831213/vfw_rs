@@ -1,9 +1,8 @@
 use crate::arch::arch;
 use crate::exit;
 use crate::hsm::HsmCell;
-use crate::hw_thread::get_task_id;
+use crate::hw_thread::{get_task_id, thread_loop, Task, TaskId};
 use crate::init_heap;
-use crate::msg::MsgCell;
 use crate::{clear_ipi, send_ipi, wait_ipi};
 use crate::{Stack, VfwStack};
 use core::ptr::NonNull;
@@ -137,128 +136,13 @@ fn vfw_start() {
                 MAX_CORES
             );
         }
+        //init task_id to 1
+        get_task_id();
         unsafe { __boot_core_init() };
-        let mut _a0: usize = 0;
-        fork_call(
-            &mut _a0,
-            0,
-            get_task_id() as usize,
-            vfw_main as usize,
-            0,
-            0,
-            0,
-        );
+        vfw_main();
+    } else {
+        thread_loop();
     }
-    unsafe {
-        fast_trap::trap_entry();
-    }
-}
-
-pub(crate) const IPI_HSM: usize = -1isize as usize;
-
-#[repr(usize)]
-pub(crate) enum VfwCall {
-    Fork = 0,
-    Join,
-}
-impl core::convert::TryFrom<usize> for VfwCall {
-    type Error = usize;
-    fn try_from(value: usize) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(VfwCall::Fork),
-            1 => Ok(VfwCall::Join),
-            v => Err(v),
-        }
-    }
-}
-
-#[inline(always)]
-pub(crate) fn vfw_idle() {
-    wait_ipi();
-    unsafe {
-        if let Some(IPI_HSM) = cpu_ctx(hartid()).ipi_msg.local().recv() {
-            clear_ipi(hartid());
-            cpu_ctx(hartid()).ipi_msg.local().done();
-        }
-    }
-}
-
-#[inline(always)]
-pub(crate) fn vfw_call(a: &mut [usize; 8]) -> usize {
-    let hartid = hartid();
-    let a_in: [usize; 8] = *a;
-    match VfwCall::try_from(a_in[0]) {
-        Ok(VfwCall::Fork) => fork_call(
-            &mut a[0], a_in[1], a_in[2], a_in[3], a_in[4], a_in[5], hartid,
-        ),
-        Ok(VfwCall::Join) => join_call(a_in[1]),
-        Err(e) => panic!("Invalid VfwCall {:#x}", e),
-    }
-}
-
-// boot sp can not include handler call stack
-#[inline(always)]
-pub(crate) fn fork_call(
-    a0: &mut usize,
-    a1: usize,
-    a2: usize,
-    a3: usize,
-    a4: usize,
-    a5: usize,
-    hartid: usize,
-) -> usize {
-    //fork on other core
-    let hart_target = a1;
-    if hart_target >= num_cores() {
-        panic!("Invalid fork target id {}!", hart_target);
-    }
-    let task_id = a2 as u16;
-    let entry = a3;
-    let arg_len = a4;
-    let args = a5;
-    let mut task = Task {
-        entry,
-        args: [0; 8],
-        task_id: TaskId::new(hartid as u16, task_id),
-    };
-    for i in 0..arg_len {
-        unsafe { task.args[i] = *((args + i * core::mem::size_of::<usize>()) as *const usize) };
-    }
-    let ret = cpu_ctx(hart_target).hsm.remote().start(task);
-    if ret && hart_target != hartid {
-        cpu_ctx(hart_target).ipi_msg.remote().send(IPI_HSM);
-        send_ipi(hart_target);
-    }
-    *a0 = ret as usize;
-    1
-}
-
-// boot sp can not include handler call stack
-#[inline(always)]
-pub(crate) fn join_call(a1: usize) -> usize {
-    #[inline(always)]
-    fn finished(issued: u16, retired: u16) -> bool {
-        if (issued >> 15) != (retired >> 15) {
-            retired <= issued
-        } else {
-            retired >= issued
-        }
-    }
-    let id = TaskId::from_u32(a1 as u32);
-    let hart_target = id.hart_id() as usize;
-    if hart_target >= num_cores() {
-        panic!("Invalid join target id {}!", hart_target);
-    }
-    let cpu = cpu_ctx(hart_target);
-    loop {
-        if cpu.hsm.remote().get_status().expect("Invalid State!") == crate::hsm::HsmState::Stopped
-            && finished(id.task_id(), cpu.current.task_id())
-        {
-            break;
-        }
-        core::hint::spin_loop();
-    }
-    0
 }
 
 pub fn per_cpu_offset() -> usize {
@@ -270,7 +154,7 @@ pub fn per_cpu_offset() -> usize {
 }
 
 #[inline]
-pub(crate) fn vfw_main() -> ! {
+fn vfw_main() -> ! {
     extern "C" {
         fn main() -> u32;
     }
@@ -278,48 +162,9 @@ pub(crate) fn vfw_main() -> ! {
     exit(ret);
 }
 
-#[inline]
-pub(crate) fn vfw_done() {
-    unsafe {
-        cpu_ctx(hartid()).hsm.local().stop();
-        fast_trap::trap_entry();
-    }
-}
-
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct Task {
-    pub entry: usize,
-    pub args: [usize; 8],
-    pub task_id: TaskId,
-}
-
-#[derive(Copy, Clone, Debug)]
-#[repr(C)]
-pub struct TaskId(u32);
-impl TaskId {
-    pub const fn new(hart_id: u16, task_id: u16) -> Self {
-        TaskId((hart_id as u32) | ((task_id as u32) << 16))
-    }
-    pub const fn from_u32(raw: u32) -> Self {
-        TaskId(raw)
-    }
-
-    pub fn task_id(&self) -> u16 {
-        (self.0 >> 16) as u16
-    }
-    pub fn hart_id(&self) -> u16 {
-        self.0 as u16
-    }
-    pub fn raw(&self) -> u32 {
-        self.0
-    }
-}
-
 pub(crate) struct HartContext {
     pub(crate) trap: FlowContext,
     pub(crate) hsm: HsmCell<Task>,
-    pub(crate) ipi_msg: MsgCell<usize>,
     pub(crate) current: TaskId,
 }
 
@@ -328,7 +173,6 @@ impl HartContext {
         HartContext {
             trap: FlowContext::ZERO,
             hsm: HsmCell::new(),
-            ipi_msg: MsgCell::new(),
             current: TaskId::new(0, 0),
         }
     }

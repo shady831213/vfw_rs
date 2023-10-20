@@ -1,4 +1,4 @@
-use crate::TrapHandler;
+use crate::TrapContext;
 use core::alloc::Layout;
 use riscv::register::{
     mcause::{self, Exception as E, Trap as T},
@@ -217,7 +217,7 @@ impl FlowContext {
 
 #[naked]
 pub unsafe extern "C" fn reuse_stack_for_trap() {
-    const LAYOUT: Layout = Layout::new::<TrapHandler>();
+    const LAYOUT: Layout = Layout::new::<TrapContext>();
     core::arch::asm!(
         "   addi sp, sp, {size}
             andi sp, sp, {mask}

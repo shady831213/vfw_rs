@@ -1,25 +1,11 @@
-use crate::arch::default_trap_handler;
 use crate::arch::FlowContext;
+use crate::TrapVector;
 use crate::{per_cpu_offset, PER_CPU_LEN};
-pub union ExceptionVector {
-    pub handler: crate::TrapHandler,
-    pub reserved: usize,
-}
-
-impl ExceptionVector {
-    #[inline]
-    pub unsafe fn handle(&self, ctx: &mut FlowContext) {
-        if self.reserved == 0 {
-            default_trap_handler(ctx);
-        } else {
-            (self.handler)(ctx);
-        }
-    }
-}
+pub type ExceptionVector = TrapVector;
 
 #[inline(always)]
-pub unsafe extern "C" fn exception_handler(ctx: &mut FlowContext) {
-    expts()[per_cpu_offset()].handle(ctx);
+pub(super) fn exception_handler(ctx: &mut FlowContext) {
+    unsafe { expts()[per_cpu_offset()].handle(ctx) };
 }
 
 #[inline]

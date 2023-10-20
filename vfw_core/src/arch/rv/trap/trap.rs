@@ -1,7 +1,9 @@
+use super::exception::*;
+use super::interrupt::*;
 use crate::TrapContext;
 use core::alloc::Layout;
 use riscv::register::{
-    mcause::{self, Exception as E, Trap as T},
+    mcause::{self, Trap as T},
     mepc, mstatus, mtval,
 };
 macro_rules! exchange {
@@ -78,7 +80,12 @@ mod arch {
 }
 
 #[inline(always)]
-pub(crate) extern "C" fn vfw_handler(ctx: &mut FlowContext) {}
+pub extern "C" fn trap_handler(ctx: &mut FlowContext) {
+    match mcause::read().cause() {
+        T::Exception(_) => exception_handler(ctx),
+        T::Interrupt(i) => interrupt_handler(ctx, Interrupt::from(i)),
+    }
+}
 
 pub fn default_trap_handler(ctx: &mut FlowContext) {
     panic!(

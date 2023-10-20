@@ -122,7 +122,7 @@ pub(crate) fn vfw_start() {
         fn __boot_core_init();
     }
     __pre_init();
-    VfwStack.load_context(cpu_ctx(hartid()).context_ptr(), arch::vfw_handler);
+    VfwStack.load_context(cpu_ctx(hartid()).context_ptr(), arch::trap_handler);
     __post_init();
     if hartid() == 0 {
         init_bss();

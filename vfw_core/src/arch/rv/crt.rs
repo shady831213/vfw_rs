@@ -74,14 +74,31 @@ unsafe extern "C" fn _start() {
         li  x31,0
         .option push
         .option norelax
+        la t0, {abort}
+        csrw mtvec, t0
         la  gp, __global_pointer$
         .option pop
     ",
     laod_sp!(),
     "call {move_stack}
-    j {vfw_start}",
+    j {vfw_start}
+    ",
+        abort = sym abort,
         move_stack          =   sym crate::arch::reuse_stack_for_trap,
         vfw_start = sym crate::vfw_start,
+        options(noreturn)
+    )
+}
+
+#[naked]
+unsafe extern "C" fn abort() {
+    core::arch::asm!(
+        "
+        .align 2
+        wfi
+        j {abort}
+        ",
+        abort = sym abort,
         options(noreturn)
     )
 }

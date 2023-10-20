@@ -13,14 +13,16 @@ pub enum SbiHandlerError {
     Unhandled,
 }
 
-pub fn sbi_handler_panic() {
+pub fn sbi_handler_panic(ctx: &mut FlowContext) {
     panic!(
-        "Unhandled exception! mstatus: {:x?}, mcause: {:?}, mepc: {:08x?}, insn:{:x},  mtval: {:08x?}",
-        mstatus::read(),
+        "[core{}] Unhandled exception!  mcause: {:?}, mepc: {:08x?}, mtval: {:08x?}, insn:{:x}, ra: {:#x}, mstatus: {:x?},",
+        crate::hartid(),
         mcause::read().cause(),
         mepc::read(),
-        unsafe {super::access::get_insn(mepc::read())},
         mtval::read(),
+        unsafe {super::access::get_insn(mepc::read())},
+        ctx.ra,
+        mstatus::read(),
     );
 }
 

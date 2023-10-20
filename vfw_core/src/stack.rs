@@ -1,13 +1,6 @@
-use crate::arch::arch;
+use crate::arch;
 use crate::trap::{TrapContext, TrapHandler};
-use core::{
-    alloc::Layout,
-    marker::PhantomPinned,
-    mem::{align_of, forget, MaybeUninit},
-    ops::Range,
-    ptr::NonNull,
-};
-use fast_trap::FlowContext;
+use core::{alloc::Layout, mem::forget, ops::Range, ptr::NonNull};
 
 extern "C" {
     static mut _sstack: u8;
@@ -23,7 +16,7 @@ pub trait Stack {
         self.start() - self.size()
     }
     #[inline(always)]
-    fn load_context(&self, context_ptr: NonNull<FlowContext>, handler: TrapHandler) {
+    fn load_context(&self, context_ptr: NonNull<arch::FlowContext>, handler: TrapHandler) {
         core::mem::forget(
             FreeTrapStack::new(self.end()..self.start(), |_| {}, context_ptr, handler)
                 .unwrap()
@@ -80,7 +73,7 @@ impl FreeTrapStack {
     pub fn new(
         range: Range<usize>,
         drop: fn(Range<usize>),
-        context_ptr: NonNull<FlowContext>,
+        context_ptr: NonNull<arch::FlowContext>,
         handler: TrapHandler,
     ) -> Result<Self, IllegalStack> {
         const LAYOUT: Layout = Layout::new::<TrapContext>();

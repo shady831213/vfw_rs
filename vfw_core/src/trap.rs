@@ -1,11 +1,5 @@
-use core::{
-    alloc::Layout,
-    marker::PhantomPinned,
-    mem::{align_of, forget, MaybeUninit},
-    ops::Range,
-    ptr::NonNull,
-};
-use fast_trap::{FastHandler, FlowContext};
+use crate::arch;
+use core::{marker::PhantomPinned, ops::Range, ptr::NonNull};
 // modified from https://github.com/YdrMaster/fast-trap
 // The MIT License (MIT)
 // Copyright © 2022 YdrMaster
@@ -14,7 +8,7 @@ use fast_trap::{FastHandler, FlowContext};
 // THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #[repr(C)]
 pub(crate) struct TrapContext {
-    pub(crate) context: NonNull<FlowContext>,
+    pub(crate) context: NonNull<arch::FlowContext>,
     pub(crate) handler: TrapHandler,
     pub(crate) scratch: usize,
     pub(crate) range: Range<usize>,
@@ -22,4 +16,4 @@ pub(crate) struct TrapContext {
     pinned: PhantomPinned,
 }
 
-pub type TrapHandler = extern "C" fn(ctx: &mut FlowContext);
+pub type TrapHandler = extern "C" fn(ctx: &mut arch::FlowContext);

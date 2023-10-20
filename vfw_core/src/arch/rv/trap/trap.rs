@@ -1,5 +1,4 @@
 use crate::*;
-use fast_trap::FlowContext;
 use paste::paste;
 use riscv::register::{
     mcause::{self, Exception as E, Trap as T},
@@ -130,6 +129,36 @@ macro_rules! on_vfw_stack {
 //for sbi, all machine level run time is in the trap scope, thus, all stack is available for fast_trap
 //so vfw_fast_handler only handle machine level app
 #[inline(always)]
-pub(crate) extern "C" fn vfw_fast_handler(ctx: &mut FlowContext) {
+pub(crate) extern "C" fn vfw_handler(ctx: &mut FlowContext) {
     //FIXME:just for compile
+}
+
+// #[naked]
+pub(crate) fn trap_entry() {}
+
+#[repr(C)]
+#[allow(missing_docs)]
+pub struct FlowContext {
+    pub ra: usize,      // 0..
+    pub t: [usize; 7],  // 1..
+    pub a: [usize; 8],  // 8..
+    pub s: [usize; 12], // 16..
+    pub gp: usize,      // 28..
+    pub tp: usize,      // 29..
+    pub sp: usize,      // 30..
+    pub pc: usize,      // 31..
+}
+
+impl FlowContext {
+    /// 零初始化。
+    pub const ZERO: Self = Self {
+        ra: 0,
+        t: [0; 7],
+        a: [0; 8],
+        s: [0; 12],
+        gp: 0,
+        tp: 0,
+        sp: 0,
+        pc: 0,
+    };
 }

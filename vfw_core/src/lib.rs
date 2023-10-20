@@ -23,6 +23,5 @@ mod platform;
 mod rt;
 pub use platform::*;
 pub use rt::*;
-pub extern crate fast_trap;
 mod trap;
 pub use trap::TrapHandler;

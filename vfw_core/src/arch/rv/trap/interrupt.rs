@@ -58,21 +58,21 @@ impl InterruptVector {
 
 const INT_VECTOR_LEN: usize = 12;
 
-#[inline(always)]
-pub unsafe extern "C" fn interrupt_handler(ctx: fast_trap::EntireContext<mcause::Interrupt>) {
-    let (_, mail) = ctx.split();
-    let cause = Interrupt::from(mail.get());
-    if (cause as usize) < INT_VECTOR_LEN {
-        let h = &interrupts()[per_cpu_offset()][cause as usize];
-        if cause == Interrupt::MachineSoft {
-            h.handle_or_dummy();
-        } else {
-            h.handle();
-        }
-    } else {
-        super::default_trap_handler();
-    }
-}
+// #[inline(always)]
+// pub unsafe extern "C" fn interrupt_handler(ctx: fast_trap::EntireContext<mcause::Interrupt>) {
+//     let (_, mail) = ctx.split();
+//     let cause = Interrupt::from(mail.get());
+//     if (cause as usize) < INT_VECTOR_LEN {
+//         let h = &interrupts()[per_cpu_offset()][cause as usize];
+//         if cause == Interrupt::MachineSoft {
+//             h.handle_or_dummy();
+//         } else {
+//             h.handle();
+//         }
+//     } else {
+//         super::default_trap_handler();
+//     }
+// }
 
 #[inline]
 fn interrupts() -> &'static mut [[InterruptVector; INT_VECTOR_LEN]] {

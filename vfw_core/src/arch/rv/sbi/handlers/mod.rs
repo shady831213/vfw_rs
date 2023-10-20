@@ -3,7 +3,7 @@ pub use misaligned_access::*;
 mod rdtime;
 pub use rdtime::*;
 mod sbi_call;
-use fast_trap::FlowContext;
+use crate::arch::FlowContext;
 pub use sbi_call::*;
 
 use riscv::register::{mcause, mepc, mstatus, mtval};

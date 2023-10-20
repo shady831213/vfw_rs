@@ -1,6 +1,6 @@
 use super::default_trap_handler;
+use crate::arch::FlowContext;
 use crate::{per_cpu_offset, PER_CPU_LEN};
-use fast_trap::FlowContext;
 pub union ExceptionVector {
     pub handler: unsafe extern "C" fn(ctx: &mut FlowContext),
     pub reserved: usize,

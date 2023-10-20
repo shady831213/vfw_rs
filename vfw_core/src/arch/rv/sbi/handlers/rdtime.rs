@@ -1,6 +1,6 @@
 use super::SbiHandlerError;
 use super::*;
-use fast_trap::FlowContext;
+use crate::arch::FlowContext;
 use riscv::register::{mepc, mstatus, scounteren};
 pub trait SbiTimer: rustsbi::Timer {
     fn get_time(&self) -> u64;

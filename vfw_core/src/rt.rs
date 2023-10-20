@@ -1,12 +1,11 @@
-use crate::arch::arch;
+use crate::arch;
 use crate::exit;
 use crate::hsm::HsmCell;
 use crate::hw_thread::{get_task_id, thread_loop, Task, TaskId};
 use crate::init_heap;
-use crate::{clear_ipi, send_ipi, wait_ipi};
+use crate::wait_ipi;
 use crate::{Stack, VfwStack};
 use core::ptr::NonNull;
-use fast_trap::FlowContext;
 
 #[no_mangle]
 pub extern "C" fn num_cores() -> usize {
@@ -123,7 +122,7 @@ fn vfw_start() {
         fn __boot_core_init();
     }
     __pre_init();
-    VfwStack.load_context(cpu_ctx(hartid()).context_ptr(), arch::vfw_fast_handler);
+    VfwStack.load_context(cpu_ctx(hartid()).context_ptr(), arch::vfw_handler);
     arch::init_fast_trap();
     __post_init();
     if hartid() == 0 {
@@ -163,7 +162,7 @@ fn vfw_main() -> ! {
 }
 
 pub(crate) struct HartContext {
-    pub(crate) trap: FlowContext,
+    pub(crate) trap: arch::FlowContext,
     pub(crate) hsm: HsmCell<Task>,
     pub(crate) current: TaskId,
 }
@@ -171,14 +170,14 @@ pub(crate) struct HartContext {
 impl HartContext {
     const fn new() -> Self {
         HartContext {
-            trap: FlowContext::ZERO,
+            trap: arch::FlowContext::ZERO,
             hsm: HsmCell::new(),
             current: TaskId::new(0, 0),
         }
     }
 
     #[inline]
-    pub(crate) fn context_ptr(&mut self) -> NonNull<FlowContext> {
+    pub(crate) fn context_ptr(&mut self) -> NonNull<arch::FlowContext> {
         unsafe { NonNull::new_unchecked(&mut self.trap) }
     }
 }

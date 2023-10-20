@@ -25,7 +25,7 @@ unsafe extern "C" fn trap_vec() {
         "j {default}", // reserved
         "j {default}", // machine    external
         ".option pop",
-        default = sym fast_trap::trap_entry,
+        default = sym crate::arch::trap_entry,
         options(noreturn)
     )
 }

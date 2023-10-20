@@ -39,7 +39,7 @@ impl TaskId {
 ))]
 mod hw_thread_imp {
     use super::*;
-    use crate::arch::arch;
+    use crate::arch;
     use crate::{clear_ipi, cpu_ctx, hartid, num_cores, send_ipi, wait_ipi};
     use core::sync::atomic::{AtomicU16, Ordering};
     pub(crate) fn thread_loop() {

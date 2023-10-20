@@ -1,5 +1,5 @@
 use crate::*;
-use fast_trap::{FastContext, FastResult, FlowContext};
+use fast_trap::FlowContext;
 use paste::paste;
 use riscv::register::{
     mcause::{self, Exception as E, Trap as T},
@@ -130,16 +130,6 @@ macro_rules! on_vfw_stack {
 //for sbi, all machine level run time is in the trap scope, thus, all stack is available for fast_trap
 //so vfw_fast_handler only handle machine level app
 #[inline(always)]
-pub(crate) extern "C" fn vfw_fast_handler(
-    mut ctx: FastContext,
-    a1: usize,
-    a2: usize,
-    a3: usize,
-    a4: usize,
-    a5: usize,
-    a6: usize,
-    a7: usize,
-) -> FastResult {
+pub(crate) extern "C" fn vfw_fast_handler(ctx: &mut FlowContext) {
     //FIXME:just for compile
-    ctx.restore()
 }

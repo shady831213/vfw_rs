@@ -46,3 +46,9 @@ pub(crate) fn boot(task: &Task) {
         clobber_abi("C"),);
     }
 }
+
+#[inline]
+pub(crate) fn exchange_scratch(mut val: usize) -> usize {
+    unsafe { core::arch::asm!("csrrw {0}, mscratch, {0}", inlateout(reg) val) };
+    val
+}

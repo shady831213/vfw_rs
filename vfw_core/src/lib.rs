@@ -24,4 +24,4 @@ mod rt;
 pub use platform::*;
 pub use rt::*;
 mod trap;
-pub use trap::TrapHandler;
+pub use trap::*;

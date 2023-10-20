@@ -1,7 +1,7 @@
 use super::super::access::*;
 use super::SbiHandlerError;
 use super::*;
-use crate::arch::FlowContext;
+use crate::FlowContext;
 use riscv::register::{mepc, mtval};
 
 pub fn misaligned_store_handler(ctx: &mut FlowContext) -> Result<(), SbiHandlerError> {

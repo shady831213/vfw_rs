@@ -1,5 +1,5 @@
 use crate::arch;
-use crate::trap::{TrapContext, TrapHandler};
+use crate::{TrapContext, TrapHandler};
 use core::{alloc::Layout, mem::forget, ops::Range, ptr::NonNull};
 
 extern "C" {

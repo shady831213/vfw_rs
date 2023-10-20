@@ -1,4 +1,5 @@
-use super::{default_trap_handler, dummy_trap_handler};
+use crate::FlowContext;
+use crate::{default_trap_handler, dummy_trap_handler};
 use crate::{per_cpu_offset, PER_CPU_LEN};
 use riscv::register::mcause;
 
@@ -39,9 +40,9 @@ pub union InterruptVector {
 }
 
 impl InterruptVector {
-    pub unsafe fn handle(&self) {
+    pub unsafe fn handle(&self, ctx: &mut FlowContext) {
         if self.reserved == 0 {
-            default_trap_handler();
+            default_trap_handler(ctx);
         } else {
             (self.handler)();
         }

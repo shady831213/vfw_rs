@@ -1,5 +1,4 @@
-use crate::{cpu_ctx, Task, TrapHandler};
-use core::alloc::Layout;
+use crate::{cpu_ctx, Task};
 use riscv::register::{mhartid, mstatus};
 
 pub(crate) fn hartid() -> usize {
@@ -46,20 +45,6 @@ pub(crate) fn boot(task: &Task) {
         in("a7") task.args[7],
         clobber_abi("C"),);
     }
-}
-
-#[naked]
-pub(crate) unsafe extern "C" fn reuse_stack_for_trap() {
-    const LAYOUT: Layout = Layout::new::<TrapHandler>();
-    core::arch::asm!(
-        "   addi sp, sp, {size}
-            andi sp, sp, {mask}
-            ret
-        ",
-        size = const -(LAYOUT.size() as isize),
-        mask = const !(LAYOUT.align() as isize - 1) ,
-        options(noreturn)
-    )
 }
 
 #[inline]

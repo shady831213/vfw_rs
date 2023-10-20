@@ -1,8 +1,8 @@
-use super::default_trap_handler;
 use crate::arch::FlowContext;
+use crate::default_trap_handler;
 use crate::{per_cpu_offset, PER_CPU_LEN};
 pub union ExceptionVector {
-    pub handler: unsafe extern "C" fn(ctx: &mut FlowContext),
+    pub handler: crate::TrapHandler,
     pub reserved: usize,
 }
 
@@ -10,7 +10,7 @@ impl ExceptionVector {
     #[inline]
     pub unsafe fn handle(&self, ctx: &mut FlowContext) {
         if self.reserved == 0 {
-            default_trap_handler();
+            default_trap_handler(ctx);
         } else {
             (self.handler)(ctx);
         }
@@ -27,7 +27,7 @@ fn expts() -> &'static mut [ExceptionVector] {
     crate::relocation!(mut __EXCEPTIONS: [ExceptionVector; PER_CPU_LEN])
 }
 
-pub unsafe fn register_exception_handler(f: unsafe extern "C" fn(ctx: &mut FlowContext)) {
+pub unsafe fn register_exception_handler(f: crate::TrapHandler) {
     expts()[per_cpu_offset()].handler = f;
 }
 

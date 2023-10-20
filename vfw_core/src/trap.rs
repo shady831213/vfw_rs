@@ -1,4 +1,6 @@
-use crate::arch;
+pub use crate::arch::{
+    default_trap_handler, dummy_trap_handler, reuse_stack_for_trap, FlowContext,
+};
 use core::{marker::PhantomPinned, ops::Range, ptr::NonNull};
 // modified from https://github.com/YdrMaster/fast-trap
 // The MIT License (MIT)
@@ -8,7 +10,7 @@ use core::{marker::PhantomPinned, ops::Range, ptr::NonNull};
 // THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #[repr(C)]
 pub(crate) struct TrapContext {
-    pub(crate) context: NonNull<arch::FlowContext>,
+    pub(crate) context: NonNull<FlowContext>,
     pub(crate) handler: TrapHandler,
     pub(crate) scratch: usize,
     pub(crate) range: Range<usize>,
@@ -16,4 +18,29 @@ pub(crate) struct TrapContext {
     pinned: PhantomPinned,
 }
 
-pub type TrapHandler = extern "C" fn(ctx: &mut arch::FlowContext);
+pub type TrapHandler = extern "C" fn(ctx: &mut FlowContext);
+
+pub union TrapVector {
+    pub handler: TrapHandler,
+    pub reserved: usize,
+}
+
+impl TrapVector {
+    #[inline]
+    pub unsafe fn handle(&self, ctx: &mut FlowContext) {
+        if self.reserved == 0 {
+            default_trap_handler(ctx);
+        } else {
+            (self.handler)(ctx);
+        }
+    }
+
+    #[inline]
+    pub unsafe fn handle_or_dummy(&self, ctx: &mut FlowContext) {
+        if self.reserved == 0 {
+            dummy_trap_handler();
+        } else {
+            (self.handler)(ctx);
+        }
+    }
+}

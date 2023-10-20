@@ -4,6 +4,7 @@ use crate::hsm::HsmCell;
 use crate::hw_thread::{get_task_id, thread_loop, Task, TaskId};
 use crate::init_heap;
 use crate::wait_ipi;
+use crate::FlowContext;
 use crate::{Stack, VfwStack};
 use core::ptr::NonNull;
 
@@ -162,7 +163,7 @@ fn vfw_main() -> ! {
 }
 
 pub(crate) struct HartContext {
-    pub(crate) trap: arch::FlowContext,
+    pub(crate) trap: FlowContext,
     pub(crate) hsm: HsmCell<Task>,
     pub(crate) current: TaskId,
 }
@@ -170,14 +171,14 @@ pub(crate) struct HartContext {
 impl HartContext {
     const fn new() -> Self {
         HartContext {
-            trap: arch::FlowContext::ZERO,
+            trap: FlowContext::ZERO,
             hsm: HsmCell::new(),
             current: TaskId::new(0, 0),
         }
     }
 
     #[inline]
-    pub(crate) fn context_ptr(&mut self) -> NonNull<arch::FlowContext> {
+    pub(crate) fn context_ptr(&mut self) -> NonNull<FlowContext> {
         unsafe { NonNull::new_unchecked(&mut self.trap) }
     }
 }

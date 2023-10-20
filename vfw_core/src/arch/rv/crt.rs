@@ -10,7 +10,7 @@ unsafe extern "C" fn reuse_stack_for_trap() {
         "   call t1, {move_stack}
             ret
         ",
-        move_stack          =   sym crate::arch::reuse_stack_for_trap,
+        move_stack          =   sym crate::reuse_stack_for_trap,
         options(noreturn),
     )
 }

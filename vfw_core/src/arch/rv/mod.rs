@@ -9,9 +9,9 @@ pub extern crate riscv;
 mod arch_imps;
 mod crt;
 pub mod standard;
-pub mod trap;
+mod trap;
 
-pub(crate) mod arch {
+pub mod arch {
     pub(crate) use super::arch_imps::*;
-    pub(crate) use super::trap::trap::*;
+    pub use super::trap::*;
 }

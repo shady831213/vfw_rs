@@ -1,29 +1,12 @@
 mod misaligned_access;
 pub use misaligned_access::*;
 mod rdtime;
+use crate::FlowContext;
 pub use rdtime::*;
-mod sbi_call;
-use crate::arch::FlowContext;
-pub use sbi_call::*;
-
-use riscv::register::{mcause, mepc, mstatus, mtval};
 
 #[derive(Debug)]
 pub enum SbiHandlerError {
     Unhandled,
-}
-
-pub fn sbi_handler_panic(ctx: &mut FlowContext) {
-    panic!(
-        "[core{}] Unhandled exception!  mcause: {:?}, mepc: {:08x?}, mtval: {:08x?}, insn:{:x}, ra: {:#x}, mstatus: {:x?},",
-        crate::hartid(),
-        mcause::read().cause(),
-        mepc::read(),
-        mtval::read(),
-        unsafe {super::access::get_insn(mepc::read())},
-        ctx.ra,
-        mstatus::read(),
-    );
 }
 
 fn update_reg(ctx: &mut FlowContext, dst: u8, value: usize) {

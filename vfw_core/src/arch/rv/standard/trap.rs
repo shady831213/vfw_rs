@@ -1,4 +1,3 @@
-pub use super::super::trap::*;
 use riscv::register::mtvec::{self, TrapMode};
 pub fn init_trap(mode: TrapMode) {
     unsafe {

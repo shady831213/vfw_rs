@@ -110,7 +110,7 @@ pub(crate) unsafe extern "C" fn trap_entry() {
         exchange!(),
         //save a0 to scrach
         save!(a0 => tp[2]),
-        load!(sp[0] => a0),
+        load!(tp[0] => a0),
         save!(ra => a0[0]),
         save!(t0 => a0[1]),
         save!(t1 => a0[2]),

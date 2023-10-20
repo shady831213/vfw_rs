@@ -1,4 +1,4 @@
-use crate::{cpu_ctx, Task};
+use crate::Task;
 use riscv::register::{mhartid, mstatus};
 
 pub(crate) fn hartid() -> usize {
@@ -18,16 +18,6 @@ pub(crate) fn restore_flag(flag: usize) {
         if flag != 0 {
             mstatus::set_mie();
         }
-    }
-}
-
-pub(crate) fn init_fast_trap() {
-    unsafe {
-        core::arch::asm!("
-        mv {gp}, gp
-        ", 
-        gp = out(reg) cpu_ctx(hartid()).trap.gp,
-        );
     }
 }
 

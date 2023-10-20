@@ -1,10 +1,10 @@
 use crate::arch;
+use crate::arch::FlowContext;
 use crate::exit;
 use crate::hsm::HsmCell;
 use crate::hw_thread::{get_task_id, thread_loop, Task, TaskId};
 use crate::init_heap;
 use crate::wait_ipi;
-use crate::FlowContext;
 use crate::{Stack, VfwStack};
 use core::ptr::NonNull;
 
@@ -112,8 +112,7 @@ extern "C" fn __pre_init() {}
 #[no_mangle]
 extern "C" fn __post_init() {}
 
-#[export_name = "vfw_start"]
-fn vfw_start() {
+pub(crate) fn vfw_start() {
     if hartid() >= num_cores() || hartid() >= MAX_CORES {
         loop {
             wait_ipi();

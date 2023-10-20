@@ -1,5 +1,5 @@
-use crate::FlowContext;
-use crate::{default_trap_handler, dummy_trap_handler};
+use crate::arch::FlowContext;
+use crate::arch::{default_trap_handler, dummy_trap_handler};
 use crate::{per_cpu_offset, PER_CPU_LEN};
 use riscv::register::mcause;
 

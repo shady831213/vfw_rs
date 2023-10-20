@@ -1,6 +1,4 @@
-pub use crate::arch::{
-    default_trap_handler, dummy_trap_handler, reuse_stack_for_trap, FlowContext,
-};
+use crate::arch::{default_trap_handler, dummy_trap_handler, FlowContext};
 use core::{marker::PhantomPinned, ops::Range, ptr::NonNull};
 // modified from https://github.com/YdrMaster/fast-trap
 // The MIT License (MIT)

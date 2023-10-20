@@ -78,9 +78,7 @@ mod arch {
 }
 
 #[inline(always)]
-pub(crate) extern "C" fn vfw_handler(ctx: &mut FlowContext) {
-    //FIXME:just for compile
-}
+pub(crate) extern "C" fn vfw_handler(ctx: &mut FlowContext) {}
 
 pub fn default_trap_handler(ctx: &mut FlowContext) {
     panic!(

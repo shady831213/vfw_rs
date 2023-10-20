@@ -1,5 +1,5 @@
+use crate::arch::default_trap_handler;
 use crate::arch::FlowContext;
-use crate::default_trap_handler;
 use crate::{per_cpu_offset, PER_CPU_LEN};
 pub union ExceptionVector {
     pub handler: crate::TrapHandler,

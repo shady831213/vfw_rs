@@ -1,7 +1,7 @@
 mod misaligned_access;
 pub use misaligned_access::*;
 mod rdtime;
-use crate::FlowContext;
+use crate::arch::FlowContext;
 pub use rdtime::*;
 
 #[derive(Debug)]

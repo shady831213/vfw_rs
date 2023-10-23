@@ -1,3 +1,6 @@
+use crate::arch;
+use crate::{clear_ipi, cpu_ctx, hartid, num_cores, send_ipi, wait_ipi};
+
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct Task {
@@ -28,6 +31,56 @@ impl TaskId {
     }
 }
 
+#[inline]
+fn __try_fork_on(
+    hart_target: usize,
+    task_id: u16,
+    entry: usize,
+    arg_len: usize,
+    args: *const usize,
+) -> Option<TaskId> {
+    if hart_target >= num_cores() {
+        panic!("Invalid fork target id {}!", hart_target);
+    }
+    let mut task = Task {
+        entry,
+        args: [0; 8],
+        task_id: TaskId::new(hartid() as u16, task_id),
+    };
+    for i in 0..arg_len {
+        unsafe {
+            task.args[i] = *((args as usize + i * core::mem::size_of::<usize>()) as *const usize)
+        };
+    }
+    let ret = cpu_ctx(hart_target).hsm.remote().start(task);
+    if ret && hart_target != hartid() {
+        send_ipi(hart_target);
+    }
+    if ret {
+        Some(TaskId::new(hart_target as u16, task_id))
+    } else {
+        None
+    }
+}
+
+pub(crate) fn thread_loop() {
+    loop {
+        match unsafe { &mut cpu_ctx(hartid()).hsm.local().start() } {
+            Ok(task) => unsafe {
+                cpu_ctx(hartid()).current = task.task_id;
+                arch::boot(&task);
+                cpu_ctx(hartid()).hsm.local().stop();
+                let hart_target = task.task_id.hart_id() as usize;
+                send_ipi(hart_target);
+            },
+            _ => {
+                wait_ipi();
+                clear_ipi(hartid());
+            }
+        }
+    }
+}
+
 #[cfg(any(
     feature = "max_cores_128",
     feature = "max_cores_64",
@@ -39,61 +92,8 @@ impl TaskId {
 ))]
 mod hw_thread_imp {
     use super::*;
-    use crate::arch;
-    use crate::{clear_ipi, cpu_ctx, hartid, num_cores, send_ipi, wait_ipi};
+    use crate::{clear_ipi, cpu_ctx, hartid, num_cores, wait_ipi};
     use core::sync::atomic::{AtomicU16, Ordering};
-    pub(crate) fn thread_loop() {
-        loop {
-            match unsafe { &mut cpu_ctx(hartid()).hsm.local().start() } {
-                Ok(task) => unsafe {
-                    cpu_ctx(hartid()).current = task.task_id;
-                    arch::boot(&task);
-                    cpu_ctx(hartid()).hsm.local().stop();
-                    let hart_target = task.task_id.hart_id() as usize;
-                    send_ipi(hart_target);
-                },
-                _ => {
-                    wait_ipi();
-                    clear_ipi(hartid());
-                }
-            }
-        }
-    }
-    //should be moved into arch
-    #[inline]
-    fn __try_fork_on(
-        hart_target: usize,
-        task_id: u16,
-        entry: usize,
-        arg_len: usize,
-        args: *const usize,
-    ) -> Option<TaskId> {
-        if hart_target >= num_cores() {
-            panic!("Invalid fork target id {}!", hart_target);
-        }
-        let mut task = Task {
-            entry,
-            args: [0; 8],
-            task_id: TaskId::new(hartid() as u16, task_id),
-        };
-        for i in 0..arg_len {
-            unsafe {
-                task.args[i] =
-                    *((args as usize + i * core::mem::size_of::<usize>()) as *const usize)
-            };
-        }
-        let ret = cpu_ctx(hart_target).hsm.remote().start(task);
-        if ret && hart_target != hartid() {
-            send_ipi(hart_target);
-        }
-        if ret {
-            Some(TaskId::new(hart_target as u16, task_id))
-        } else {
-            None
-        }
-    }
-
-    //should be moved into arch
     #[inline]
     fn _join(id: TaskId) {
         #[inline(always)]
@@ -238,7 +238,6 @@ mod hw_thread_imp {
     feature = "max_cores_2"
 )))]
 mod hw_thread_stub {
-    pub(crate) fn thread_loop() {}
     pub(crate) fn get_task_id() -> u16 {
         0
     }
@@ -355,4 +354,9 @@ macro_rules! try_fork_on {
     let args = [$($arg as usize,)*];
     crate::_try_fork_on($target as usize, $entry as usize, &args)
 }};
+}
+
+#[inline]
+pub(super) fn main_thread(target_id: usize, entry: usize, args: &[usize]) {
+    __try_fork_on(target_id, get_task_id(), entry, args.len(), args.as_ptr());
 }

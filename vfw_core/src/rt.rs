@@ -2,8 +2,9 @@ use crate::arch;
 use crate::arch::FlowContext;
 use crate::exit;
 use crate::hsm::HsmCell;
-use crate::hw_thread::{get_task_id, thread_loop, Task, TaskId};
+use crate::hw_thread::{thread_loop, Task, TaskId};
 use crate::init_heap;
+use crate::try_fork_on;
 use crate::wait_ipi;
 use crate::{Stack, VfwStack};
 use core::ptr::NonNull;
@@ -134,13 +135,9 @@ pub(crate) fn vfw_start() {
                 MAX_CORES
             );
         }
-        //init task_id to 1
-        get_task_id();
-        unsafe { __boot_core_init() };
-        vfw_main();
-    } else {
-        thread_loop();
+        try_fork_on!(0, vfw_main);
     }
+    thread_loop();
 }
 
 pub fn per_cpu_offset() -> usize {

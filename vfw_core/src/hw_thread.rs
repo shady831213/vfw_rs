@@ -61,7 +61,7 @@ mod hw_thread_imp {
     }
     //should be moved into arch
     #[inline]
-    fn _try_fork_on(
+    fn __try_fork_on(
         hart_target: usize,
         task_id: u16,
         entry: usize,
@@ -134,7 +134,7 @@ mod hw_thread_imp {
         let task_id = get_task_id();
         loop {
             for i in 1..crate::num_cores() {
-                if let Some(id) = _try_fork_on(i, task_id, entry, args_len, args) {
+                if let Some(id) = __try_fork_on(i, task_id, entry, args_len, args) {
                     return id.raw();
                 }
             }
@@ -151,7 +151,7 @@ mod hw_thread_imp {
     ) -> u32 {
         let task_id = get_task_id();
         loop {
-            if let Some(id) = _try_fork_on(target_id, task_id, entry, args_len, args) {
+            if let Some(id) = __try_fork_on(target_id, task_id, entry, args_len, args) {
                 break id.raw();
             }
             core::hint::spin_loop();
@@ -162,7 +162,7 @@ mod hw_thread_imp {
     extern "C" fn c_try_fork(entry: usize, args_len: usize, args: *const usize) -> u32 {
         let task_id = get_task_id();
         for i in 1..crate::num_cores() {
-            if let Some(id) = _try_fork_on(i, task_id, entry, args_len, args) {
+            if let Some(id) = __try_fork_on(i, task_id, entry, args_len, args) {
                 return id.raw();
             }
         }
@@ -176,10 +176,15 @@ mod hw_thread_imp {
         args_len: usize,
         args: *const usize,
     ) -> u32 {
-        if let Some(id) = _try_fork_on(target_id, get_task_id(), entry, args_len, args) {
+        if let Some(id) = __try_fork_on(target_id, get_task_id(), entry, args_len, args) {
             return id.raw();
         }
         -1i32 as u32
+    }
+
+    #[inline]
+    pub fn _try_fork_on(target_id: usize, entry: usize, args: &[usize]) -> Option<u32> {
+        __try_fork_on(target_id, get_task_id(), entry, args.len(), args.as_ptr()).map(|id| id.raw())
     }
 
     #[inline]
@@ -187,7 +192,7 @@ mod hw_thread_imp {
         let task_id = get_task_id();
         loop {
             for i in 1..crate::num_cores() {
-                if let Some(id) = _try_fork_on(i, task_id, entry, args.len(), args.as_ptr()) {
+                if let Some(id) = __try_fork_on(i, task_id, entry, args.len(), args.as_ptr()) {
                     return id.raw();
                 }
             }
@@ -199,7 +204,7 @@ mod hw_thread_imp {
     pub fn _fork_on(target_id: usize, entry: usize, args: &[usize]) -> u32 {
         let task_id = get_task_id();
         loop {
-            if let Some(id) = _try_fork_on(target_id, task_id, entry, args.len(), args.as_ptr()) {
+            if let Some(id) = __try_fork_on(target_id, task_id, entry, args.len(), args.as_ptr()) {
                 break id.raw();
             }
             core::hint::spin_loop();
@@ -210,7 +215,7 @@ mod hw_thread_imp {
     pub fn _try_fork(entry: usize, args: &[usize]) -> Option<u32> {
         let task_id = get_task_id();
         for i in 1..crate::num_cores() {
-            if let Some(id) = _try_fork_on(i, task_id, entry, args.len(), args.as_ptr()) {
+            if let Some(id) = __try_fork_on(i, task_id, entry, args.len(), args.as_ptr()) {
                 return Some(id.raw());
             }
         }

@@ -61,6 +61,19 @@ macro_rules! get_sp {
 }
 
 #[macro_export]
+macro_rules! get_tp {
+    () => {
+        {
+            unsafe {
+                let tp: usize;
+                core::arch::asm!("mv {0}, tp", out(reg) tp, options(pure, nomem, nostack));
+                tp
+            }
+        }
+    }
+}
+
+#[macro_export]
 macro_rules! check_stack {
     () => {{
         extern "C" {

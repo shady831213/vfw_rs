@@ -89,13 +89,13 @@ pub extern "C" fn trap_handler(ctx: &mut FlowContext) {
 
 pub fn default_trap_handler(ctx: &mut FlowContext) {
     panic!(
-        "[core{}] Unhandled exception!  mcause: {:?}, mepc: {:08x?}, mtval: {:08x?}, ra: {:#x}, mstatus: {:x?},",
+        "[core{}] Unhandled exception!  mcause: {:?}, mepc: {:#x}, mtval: {:#x}, mstatus: {:#x?}, ctx:{:#x?}",
         crate::hartid(),
         mcause::read().cause(),
         mepc::read(),
         mtval::read(),
-        ctx.ra,
         mstatus::read(),
+        ctx,
     );
 }
 
@@ -104,7 +104,7 @@ pub fn dummy_trap_handler() {}
 //tp in machine mode usually not used
 //we don't swap sp by default, if sp should be swapped, handle it in handler
 #[naked]
-pub(crate) unsafe extern "C" fn trap_entry() {
+pub unsafe extern "C" fn trap_entry() {
     core::arch::asm!(
         ".align 2",
         exchange!(),
@@ -196,8 +196,8 @@ pub(crate) unsafe extern "C" fn trap_entry() {
     )
 }
 
+#[derive(Debug)]
 #[repr(C)]
-#[allow(missing_docs)]
 pub struct FlowContext {
     pub ra: usize,      // 0..
     pub t: [usize; 7],  // 1..

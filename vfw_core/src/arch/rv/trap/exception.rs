@@ -4,7 +4,7 @@ use crate::{per_cpu_offset, PER_CPU_LEN};
 pub type ExceptionVector = TrapVector;
 
 #[inline(always)]
-pub(super) fn exception_handler(ctx: &mut FlowContext) {
+pub fn exception_handler(ctx: &mut FlowContext) {
     unsafe { expts()[per_cpu_offset()].handle(ctx) };
 }
 

@@ -60,7 +60,7 @@ impl InterruptVector {
 const INT_VECTOR_LEN: usize = 12;
 
 #[inline(always)]
-pub(super) fn interrupt_handler(ctx: &mut FlowContext, cause: Interrupt) {
+pub fn interrupt_handler(ctx: &mut FlowContext, cause: Interrupt) {
     unsafe {
         if (cause as usize) < INT_VECTOR_LEN {
             let h = &interrupts()[per_cpu_offset()][cause as usize];

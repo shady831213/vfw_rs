@@ -13,7 +13,7 @@ pub fn sbi_call<
     printer: F,
     regs: &mut FlowContext,
 ) -> bool {
-    use rustsbi::spec::{base, hsm, legacy};
+    use sbi_spec::{base, hsm, legacy};
     let mut ret = sbi.handle_ecall(
         regs.a[7],
         regs.a[6],

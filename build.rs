@@ -9,6 +9,8 @@ fn main() {
         .unwrap()
         .add_dep("vfw_core")
         .unwrap()
+        .add_dep("vfw_hal")
+        .unwrap()
         .add_dep("vfw_mailbox")
         .unwrap();
     println!("cargo:rerun-if-changed=build.rs");

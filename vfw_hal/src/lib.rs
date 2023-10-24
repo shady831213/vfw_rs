@@ -3,10 +3,12 @@
 #![feature(const_trait_impl)]
 #![allow(incomplete_features)]
 #![feature(const_fn_floating_point_arithmetic)]
+#![feature(linkage)]
 pub extern crate embedded_hal;
 pub extern crate nb;
 pub mod clk;
 pub mod ddr;
+pub mod delay;
 pub mod io;
 pub mod uart;
 use vfw_primitives::*;

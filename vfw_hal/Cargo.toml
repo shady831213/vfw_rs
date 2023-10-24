@@ -2,6 +2,7 @@
 name = "vfw_hal"
 version = "0.1.0"
 edition = "2021"
+links = "vfw_hal"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

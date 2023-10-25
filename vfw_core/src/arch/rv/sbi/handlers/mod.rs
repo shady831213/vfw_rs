@@ -62,18 +62,18 @@ macro_rules! sbi_trap_handler {
 }
 
 #[macro_export]
-macro_rules! to_next_stage {
-    ($stack_locate:ident, $prepare_for_trap:ident) => {
+macro_rules! sbi_to_next_stage {
+    ($stack_locate:ident, $rust_main:ident) => {
         #[naked]
-        unsafe extern "C" fn to_next_stage(_hart_id: usize, _start_addr: usize, _opaque: usize) -> ! {
+        unsafe extern "C" fn sbi_to_next_stage(_hart_id: usize, _start_addr: usize, _opaque: usize) -> ! {
             core::arch::asm!(
                 "
                     call {locate_stack}
                     call {rust_main}
                     j    {trap}
                 ",
-                locate_stack = sym stack_locate,
-                rust_main    = sym prepare_for_trap,
+                locate_stack = sym $stack_locate,
+                rust_main    = sym $rust_main,
                 trap         = sym crate::trap_entry,
                 options(noreturn),
             )

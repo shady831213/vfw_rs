@@ -98,10 +98,10 @@ impl<const SIZE: usize> Stack for SbiStack<SIZE> {
 }
 
 #[macro_export]
-macro_rules! stack_locate {
+macro_rules! sbi_stack_locate {
     ($sbi_stack:expr, $size:expr) => {
         #[naked]
-        unsafe extern "C" fn stack_locate() {
+        unsafe extern "C" fn sbi_stack_locate() {
             core::arch::asm!(
                 "   la   sp, {stack}
                     li   t0, {per_hart_stack_size}

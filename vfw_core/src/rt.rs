@@ -34,19 +34,22 @@ pub extern "C" fn restore_flag(flag: usize) {
     arch::restore_flag(flag)
 }
 
+#[linkage = "weak"]
+#[no_mangle]
+extern "C" fn __init_bss(s: *mut u8, n: usize) {
+    unsafe { core::ptr::write_bytes(s, 0, n) };
+}
+
 fn init_bss() {
     extern "C" {
         static mut _sbss: u8;
         static mut _ebss: u8;
-        fn __init_bss(s: *mut u8, n: usize);
     }
     let m_sbss = unsafe { &mut _sbss } as *mut _ as usize;
     let m_ebss = unsafe { &mut _ebss } as *mut _ as usize;
     let size = m_ebss - m_sbss;
     if size > 0 {
-        unsafe {
-            __init_bss(m_sbss as *mut u8, size);
-        }
+        __init_bss(m_sbss as *mut u8, size);
     }
 }
 

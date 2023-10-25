@@ -310,11 +310,11 @@ pub use hw_thread_stub::*;
 
 #[macro_export]
 macro_rules! fork {
-($entry:ident) => {{
+($entry:expr) => {{
     let args:[usize;0] = [0;0];
     crate::_fork($entry as usize, &args)
 }};
-($entry:ident, $($arg:expr),*) => {{
+($entry:expr, $($arg:expr),*) => {{
     let args = [$($arg as usize,)*];
     crate::_fork($entry as usize, &args)
 }};
@@ -334,11 +334,11 @@ macro_rules! try_fork {
 
 #[macro_export]
 macro_rules! fork_on {
-($target:expr, $entry:ident) => {{
+($target:expr, $entry:expr) => {{
     let args:[usize;0] = [0;0];
     crate::_fork_on($target as usize, $entry as usize, &args)
 }};
-($target:expr, $entry:ident, $($arg:expr),*) => {{
+($target:expr, $entry:expr, $($arg:expr),*) => {{
     let args = [$($arg as usize,)*];
     crate::_fork_on($target as usize, $entry as usize, &args)
 }};
@@ -346,11 +346,11 @@ macro_rules! fork_on {
 
 #[macro_export]
 macro_rules! try_fork_on {
-($target:expr, $entry:ident) => {{
+($target:expr, $entry:expr) => {{
     let args:[usize;0] = [0;0];
     crate::_try_fork_on($target as usize, $entry as usize, &args)
 }};
-($target:expr, $entry:ident, $($arg:expr),*) => {{
+($target:expr, $entry:expr, $($arg:expr),*) => {{
     let args = [$($arg as usize,)*];
     crate::_try_fork_on($target as usize, $entry as usize, &args)
 }};

@@ -7,6 +7,7 @@
 #![feature(naked_functions)]
 #![feature(linkage)]
 extern crate alloc;
+pub extern crate paste;
 pub mod arch;
 mod heap;
 mod hw_thread;

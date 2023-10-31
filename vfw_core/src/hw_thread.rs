@@ -1,5 +1,6 @@
 use crate::arch;
 use crate::{clear_ipi, cpu_ctx, hartid, num_cores, send_ipi, wait_ipi};
+use core::sync::atomic::{fence, Ordering};
 
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -71,6 +72,7 @@ pub(crate) fn thread_loop() {
                 arch::boot(&task);
                 cpu_ctx(hartid()).hsm.local().stop();
                 let hart_target = task.task_id.hart_id() as usize;
+                fence(Ordering::Release);
                 send_ipi(hart_target);
             },
             _ => {
@@ -110,14 +112,16 @@ mod hw_thread_imp {
         }
         let cpu = cpu_ctx(hart_target);
         loop {
-            wait_ipi();
+            // if polling fail, fence garantee there will be a ipi.
             clear_ipi(hartid());
+            fence(Ordering::Acquire);
             if cpu.hsm.remote().get_status().expect("Invalid State!")
                 == crate::hsm::HsmState::Stopped
                 && finished(id.task_id(), cpu.current.task_id())
             {
                 break;
             }
+            wait_ipi();
         }
     }
 

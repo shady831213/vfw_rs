@@ -1,33 +1,42 @@
 #![allow(dead_code)]
 use vfw_primitives::{io_read32, io_write32};
 
-pub const NDS_PLIC_FEATURE_PREEMPT: usize = 1 << 0;
-pub const NDS_PLIC_FEATURE_VECTORED: usize = 1 << 1;
-
 const PLIC_PRIORITY_OFFSET: usize = 0x00000000;
-const PLIC_PRIORITY_SHIFT_PER_SOURCE: usize = 2;
 
 const PLIC_PENDING_OFFSET: usize = 0x00001000;
-const PLIC_PENDING_SHIFT_PER_SOURCE: usize = 0;
 
 const PLIC_ENABLE_OFFSET: usize = 0x00002000;
-const PLIC_ENABLE_SHIFT_PER_TARGET: usize = 7;
 
 const PLIC_THRESHOLD_OFFSET: usize = 0x00200000;
-const PLIC_THRESHOLD_SHIFT_PER_TARGET: usize = 12;
 
 const PLIC_CLAIM_OFFSET: usize = 0x00200004;
-const PLIC_CLAIM_SHIFT_PER_TARGET: usize = 12;
 
 #[repr(C)]
-pub struct Plic {
+pub struct Plic<
+    const PLIC_PRIORITY_SHIFT_PER_SOURCE: usize,
+    const PLIC_ENABLE_SHIFT_PER_TARGET: usize,
+    const PLIC_THRESHOLD_SHIFT_PER_TARGET: usize,
+    const PLIC_CLAIM_SHIFT_PER_TARGET: usize,
+> {
     base: usize,
-    max_pri: usize,
+    pub max_pri: usize,
 }
 
-impl Plic {
-    pub const fn new(base: usize, max_pri: usize) -> Plic {
-        Plic { base, max_pri }
+impl<
+        const PLIC_PRIORITY_SHIFT_PER_SOURCE: usize,
+        const PLIC_ENABLE_SHIFT_PER_TARGET: usize,
+        const PLIC_THRESHOLD_SHIFT_PER_TARGET: usize,
+        const PLIC_CLAIM_SHIFT_PER_TARGET: usize,
+    >
+    Plic<
+        PLIC_PRIORITY_SHIFT_PER_SOURCE,
+        PLIC_ENABLE_SHIFT_PER_TARGET,
+        PLIC_THRESHOLD_SHIFT_PER_TARGET,
+        PLIC_CLAIM_SHIFT_PER_TARGET,
+    >
+{
+    pub const fn new(base: usize, max_pri: usize) -> Self {
+        Self { base, max_pri }
     }
 
     pub fn set_feature(&self, feature: usize) {
@@ -89,34 +98,4 @@ impl Plic {
             irq
         );
     }
-}
-
-#[no_mangle]
-extern "C" fn plic_max_pri(p: &Plic) -> u32 {
-    p.max_pri as u32
-}
-
-#[no_mangle]
-extern "C" fn plic_set_pri(p: &Plic, irq: u32, pri: u32) {
-    p.set_pri(irq as usize, pri as usize)
-}
-
-#[no_mangle]
-extern "C" fn plic_raise_int(p: &Plic, irq: u32) {
-    p.raise_int(irq as usize)
-}
-
-#[no_mangle]
-extern "C" fn plic_set_threshold(p: &Plic, threshold: u32) {
-    p.set_threshold(threshold as usize, crate::hartid())
-}
-
-#[no_mangle]
-extern "C" fn plic_enable(p: &Plic, irq: u32) {
-    p.enable(irq as usize, crate::hartid())
-}
-
-#[no_mangle]
-extern "C" fn plic_disable(p: &Plic, irq: u32) {
-    p.disable(irq as usize, crate::hartid())
 }

@@ -26,6 +26,9 @@ pub struct Umctl2Lpddr4TimingCfg {
     pub n_odtoff: u32,
     pub n_rfc_ab: u32,
     pub n_refi_ab: u32,
+    pub n_zq_long_nop: u32,
+    pub n_zq_short_nop: u32,
+    pub n_zq_reset_nop: u32,
 }
 
 impl Umctl2Lpddr4TimingCfg {
@@ -59,6 +62,9 @@ impl Umctl2Lpddr4TimingCfg {
             n_odtoff: lpddr4_timing.tODToff,
             n_rfc_ab: lpddr4_timing.n_rfc_ab(tck),
             n_refi_ab: lpddr4_timing.n_refi_ab(tck),
+            n_zq_long_nop: lpddr4_timing.n_zq_long_nop(tck),
+            n_zq_short_nop: lpddr4_timing.n_zq_short_nop(tck),
+            n_zq_reset_nop: lpddr4_timing.n_zq_reset_nop(tck),
         }
     }
 }
@@ -129,5 +135,20 @@ pub trait Umctl2Lpddr4: Umctrl2MPhyV2 {
                 | regs::UDDRC_DFITMG0_DFI_RDDATA_USE_DFI_PHY_CLK
                 | regs::UDDRC_DFITMG0_DFI_T_CTRL_DELAY(0x3),
         ); //(           DFITMG0)
+    }
+    fn lpddr4_cfg_zq(&self) {
+        // ---- sdram init seq refer to 2.21.6 LPDDR4 Initialization Sequence 11-12
+        let timing = self.lpddr4_timing();
+        self.write_ctrl_reg(
+            regs::UDDRC_ZQCTL0,
+            regs::UDDRC_ZQCTL0_T_ZQ_SHORT_NOP(timing.n_zq_short_nop)
+                | regs::UDDRC_ZQCTL0_T_ZQ_LONG_NOP(timing.n_zq_long_nop)
+                | regs::UDDRC_ZQCTL0_DIS_SRX_ZQCL
+                | regs::UDDRC_ZQCTL0_DIS_AUTO_ZQ,
+        ); //(            ZQCTL0)
+        self.write_ctrl_reg(
+            regs::UDDRC_ZQCTL1,
+            regs::UDDRC_ZQCTL1_T_ZQ_RESET_NOP(timing.n_zq_reset_nop),
+        ); //(            ZQCTL1)
     }
 }

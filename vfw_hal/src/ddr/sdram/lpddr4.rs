@@ -29,6 +29,11 @@ pub struct Lpddr4Timing {
     pub tODToff: u32,   //by cycle of CK
     pub tRFCab: f32,    //by ns
     pub tREFIab: f32,   //by ns
+    pub tZQCAL: f32,    //by ns
+    pub tZQLAT: f32,    //by ns
+    pub tZQLATc: u32,   //by cycle of CK
+    pub tZQRESET: f32,  //by ns
+    pub tZQRESETc: u32, //by cycle of CK
 }
 impl Lpddr4Timing {
     const fn ceil(&self, data: f32) -> u32 {
@@ -97,6 +102,15 @@ impl Lpddr4Timing {
     }
     pub const fn n_refi_ab(&self, tck: f32) -> u32 {
         self.ceil(self.tREFIab / tck)
+    }
+    pub const fn n_zq_long_nop(&self, tck: f32) -> u32 {
+        self.ceil(self.tZQCAL / tck)
+    }
+    pub const fn n_zq_short_nop(&self, tck: f32) -> u32 {
+        self.ceil_with_min(self.tZQLAT / tck, self.tZQLATc)
+    }
+    pub const fn n_zq_reset_nop(&self, tck: f32) -> u32 {
+        self.ceil_with_min(self.tZQRESET / tck, self.tZQRESETc)
     }
 }
 

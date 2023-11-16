@@ -6,6 +6,7 @@
 
 /* Port status register */
 pub const UDDRC_PSTAT: usize = 0x3FC;
+pub const UDDRC_PORT_SIZE: usize = 0xB0;
 /* Port common configuration register */
 pub const UDDRC_PCCFG: usize = 0x400;
 /* Port n Configuration Read register */
@@ -25,85 +26,85 @@ pub const UDDRC_PCFGWQOS0_0: usize = 0x49C;
 /* Port n Write QoS Configuration register 1 */
 pub const UDDRC_PCFGWQOS1_0: usize = 0x4A0;
 /* Port n Configuration Read register */
-pub const UDDRC_PCFGR_1: usize = UDDRC_PCFGR_0 + 0xB0;
+pub const UDDRC_PCFGR_1: usize = UDDRC_PCFGR_0 + UDDRC_PORT_SIZE;
 /* Port n Configuration Write register */
-pub const UDDRC_PCFGW_1: usize = UDDRC_PCFGW_0 + 0xB0;
+pub const UDDRC_PCFGW_1: usize = UDDRC_PCFGW_0 + UDDRC_PORT_SIZE;
 /* Port n Configuration Common register */
-pub const UDDRC_PCFGC_1: usize = UDDRC_PCFGC_0 + 0xB0;
+pub const UDDRC_PCFGC_1: usize = UDDRC_PCFGC_0 + UDDRC_PORT_SIZE;
 /* Port n Control Register */
-pub const UDDRC_PCTRL_1: usize = UDDRC_PCTRL_0 + 0xB0;
+pub const UDDRC_PCTRL_1: usize = UDDRC_PCTRL_0 + UDDRC_PORT_SIZE;
 /* Port n Read QoS Configuration register 0 */
-pub const UDDRC_PCFGQOS0_1: usize = UDDRC_PCFGQOS0_0 + 0xB0;
+pub const UDDRC_PCFGQOS0_1: usize = UDDRC_PCFGQOS0_0 + UDDRC_PORT_SIZE;
 /* Port n Read QoS Configuration register 1 */
-pub const UDDRC_PCFGQOS1_1: usize = UDDRC_PCFGQOS1_0 + 0xB0;
+pub const UDDRC_PCFGQOS1_1: usize = UDDRC_PCFGQOS1_0 + UDDRC_PORT_SIZE;
 /* Port n Write QoS Configuration register 0 */
-pub const UDDRC_PCFGWQOS0_1: usize = UDDRC_PCFGWQOS0_0 + 0xB0;
+pub const UDDRC_PCFGWQOS0_1: usize = UDDRC_PCFGWQOS0_0 + UDDRC_PORT_SIZE;
 /* Port n Write QoS Configuration register 1 */
-pub const UDDRC_PCFGWQOS1_1: usize = UDDRC_PCFGWQOS1_0 + 0xB0;
+pub const UDDRC_PCFGWQOS1_1: usize = UDDRC_PCFGWQOS1_0 + UDDRC_PORT_SIZE;
 /* Port n Configuration Read register */
-pub const UDDRC_PCFGR_2: usize = UDDRC_PCFGR_0 + 0xB0 * 2;
+pub const UDDRC_PCFGR_2: usize = UDDRC_PCFGR_0 + UDDRC_PORT_SIZE * 2;
 /* Port n Configuration Write register */
-pub const UDDRC_PCFGW_2: usize = UDDRC_PCFGW_0 + 0xB0 * 2;
+pub const UDDRC_PCFGW_2: usize = UDDRC_PCFGW_0 + UDDRC_PORT_SIZE * 2;
 /* Port n Configuration Common register */
-pub const UDDRC_PCFGC_2: usize = UDDRC_PCFGC_0 + 0xB0 * 2;
+pub const UDDRC_PCFGC_2: usize = UDDRC_PCFGC_0 + UDDRC_PORT_SIZE * 2;
 /* Port n Control register */
-pub const UDDRC_PCTRL_2: usize = UDDRC_PCTRL_0 + 0xB0 * 2;
+pub const UDDRC_PCTRL_2: usize = UDDRC_PCTRL_0 + UDDRC_PORT_SIZE * 2;
 /* Port n Read QoS Configuration register 0 */
-pub const UDDRC_PCFGQOS0_2: usize = UDDRC_PCFGQOS0_0 + 0xB0 * 2;
+pub const UDDRC_PCFGQOS0_2: usize = UDDRC_PCFGQOS0_0 + UDDRC_PORT_SIZE * 2;
 /* Port n Read QoS Configuration register 1 */
-pub const UDDRC_PCFGQOS1_2: usize = UDDRC_PCFGQOS1_0 + 0xB0 * 2;
+pub const UDDRC_PCFGQOS1_2: usize = UDDRC_PCFGQOS1_0 + UDDRC_PORT_SIZE * 2;
 /* Port n Write QoS Confguration register 0 */
-pub const UDDRC_PCFGWQOS0_2: usize = UDDRC_PCFGWQOS0_0 + 0xB0 * 2;
+pub const UDDRC_PCFGWQOS0_2: usize = UDDRC_PCFGWQOS0_0 + UDDRC_PORT_SIZE * 2;
 /* Port n Write QoS Configuration register 1 */
-pub const UDDRC_PCFGWQOS1_2: usize = UDDRC_PCFGWQOS1_0 + 0xB0 * 2;
+pub const UDDRC_PCFGWQOS1_2: usize = UDDRC_PCFGWQOS1_0 + UDDRC_PORT_SIZE * 2;
 /* Port n Configuration Read register */
-pub const UDDRC_PCFGR_3: usize = UDDRC_PCFGR_0 + 0xB0 * 3;
+pub const UDDRC_PCFGR_3: usize = UDDRC_PCFGR_0 + UDDRC_PORT_SIZE * 3;
 /* Port n Configuration Write register */
-pub const UDDRC_PCFGW_3: usize = UDDRC_PCFGW_0 + 0xB0 * 3;
+pub const UDDRC_PCFGW_3: usize = UDDRC_PCFGW_0 + UDDRC_PORT_SIZE * 3;
 /* Port n Configuration Common register */
-pub const UDDRC_PCFGC_3: usize = UDDRC_PCFGC_0 + 0xB0 * 3;
+pub const UDDRC_PCFGC_3: usize = UDDRC_PCFGC_0 + UDDRC_PORT_SIZE * 3;
 /* Port n Control Register */
-pub const UDDRC_PCTRL_3: usize = UDDRC_PCTRL_0 + 0xB0 * 3;
+pub const UDDRC_PCTRL_3: usize = UDDRC_PCTRL_0 + UDDRC_PORT_SIZE * 3;
 /* Port n Read QoS Configuration register 0 */
-pub const UDDRC_PCFGQOS0_3: usize = UDDRC_PCFGQOS0_0 + 0xB0 * 3;
+pub const UDDRC_PCFGQOS0_3: usize = UDDRC_PCFGQOS0_0 + UDDRC_PORT_SIZE * 3;
 /* Port n Read QoS Configuration register 1 */
-pub const UDDRC_PCFGQOS1_3: usize = UDDRC_PCFGQOS1_0 + 0xB0 * 3;
+pub const UDDRC_PCFGQOS1_3: usize = UDDRC_PCFGQOS1_0 + UDDRC_PORT_SIZE * 3;
 /* Port n Write QoS Confguration register 0 */
-pub const UDDRC_PCFGWQOS0_3: usize = UDDRC_PCFGWQOS0_0 + 0xB0 * 3;
+pub const UDDRC_PCFGWQOS0_3: usize = UDDRC_PCFGWQOS0_0 + UDDRC_PORT_SIZE * 3;
 /* Port n Write QoS Configuration register 1 */
-pub const UDDRC_PCFGWQOS1_3: usize = UDDRC_PCFGWQOS1_0 + 0xB0 * 3;
+pub const UDDRC_PCFGWQOS1_3: usize = UDDRC_PCFGWQOS1_0 + UDDRC_PORT_SIZE * 3;
 /* Port n Configuration Read register */
-pub const UDDRC_PCFGR_4: usize = UDDRC_PCFGR_0 + 0xB0 * 4;
+pub const UDDRC_PCFGR_4: usize = UDDRC_PCFGR_0 + UDDRC_PORT_SIZE * 4;
 /* Port n Configuration Write register */
-pub const UDDRC_PCFGW_4: usize = UDDRC_PCFGW_0 + 0xB0 * 4;
+pub const UDDRC_PCFGW_4: usize = UDDRC_PCFGW_0 + UDDRC_PORT_SIZE * 4;
 /* Port n Configuration Common register */
-pub const UDDRC_PCFGC_4: usize = UDDRC_PCFGC_0 + 0xB0 * 4;
+pub const UDDRC_PCFGC_4: usize = UDDRC_PCFGC_0 + UDDRC_PORT_SIZE * 4;
 /* Port n Control Register */
-pub const UDDRC_PCTRL_4: usize = UDDRC_PCTRL_0 + 0xB0 * 4;
+pub const UDDRC_PCTRL_4: usize = UDDRC_PCTRL_0 + UDDRC_PORT_SIZE * 4;
 /* Port n Read QoS Configuration register 0 */
-pub const UDDRC_PCFGQOS0_4: usize = UDDRC_PCFGQOS0_0 + 0xB0 * 4;
+pub const UDDRC_PCFGQOS0_4: usize = UDDRC_PCFGQOS0_0 + UDDRC_PORT_SIZE * 4;
 /* Port n Read QoS Configuration register 1 */
-pub const UDDRC_PCFGQOS1_4: usize = UDDRC_PCFGQOS1_0 + 0xB0 * 4;
+pub const UDDRC_PCFGQOS1_4: usize = UDDRC_PCFGQOS1_0 + UDDRC_PORT_SIZE * 4;
 /* Port n Write QoS Confguration register 0 */
-pub const UDDRC_PCFGWQOS0_4: usize = UDDRC_PCFGWQOS0_0 + 0xB0 * 4;
+pub const UDDRC_PCFGWQOS0_4: usize = UDDRC_PCFGWQOS0_0 + UDDRC_PORT_SIZE * 4;
 /* Port n Write QoS Configuration register 1 */
-pub const UDDRC_PCFGWQOS1_4: usize = UDDRC_PCFGWQOS1_0 + 0xB0 * 4;
+pub const UDDRC_PCFGWQOS1_4: usize = UDDRC_PCFGWQOS1_0 + UDDRC_PORT_SIZE * 4;
 /* Port n Configuration Read register */
-pub const UDDRC_PCFGR_5: usize = UDDRC_PCFGR_0 + 0xB0 * 5;
+pub const UDDRC_PCFGR_5: usize = UDDRC_PCFGR_0 + UDDRC_PORT_SIZE * 5;
 /* Port n Configuration Write register */
-pub const UDDRC_PCFGW_5: usize = UDDRC_PCFGW_0 + 0xB0 * 5;
+pub const UDDRC_PCFGW_5: usize = UDDRC_PCFGW_0 + UDDRC_PORT_SIZE * 5;
 /* Port n Configuration Common register */
-pub const UDDRC_PCFGC_5: usize = UDDRC_PCFGC_0 + 0xB0 * 5;
+pub const UDDRC_PCFGC_5: usize = UDDRC_PCFGC_0 + UDDRC_PORT_SIZE * 5;
 /* Port n Control Register */
-pub const UDDRC_PCTRL_5: usize = UDDRC_PCTRL_0 + 0xB0 * 5;
+pub const UDDRC_PCTRL_5: usize = UDDRC_PCTRL_0 + UDDRC_PORT_SIZE * 5;
 /* Port n Read QoS Configuration register 0 */
-pub const UDDRC_PCFGQOS0_5: usize = UDDRC_PCFGQOS0_0 + 0xB0 * 5;
+pub const UDDRC_PCFGQOS0_5: usize = UDDRC_PCFGQOS0_0 + UDDRC_PORT_SIZE * 5;
 /* Port n Read QoS Configuration register 1 */
-pub const UDDRC_PCFGQOS1_5: usize = UDDRC_PCFGQOS1_0 + 0xB0 * 5;
+pub const UDDRC_PCFGQOS1_5: usize = UDDRC_PCFGQOS1_0 + UDDRC_PORT_SIZE * 5;
 /* Port n Write QoS Confguration register 0 */
-pub const UDDRC_PCFGWQOS0_5: usize = UDDRC_PCFGWQOS0_0 + 0xB0 * 5;
+pub const UDDRC_PCFGWQOS0_5: usize = UDDRC_PCFGWQOS0_0 + UDDRC_PORT_SIZE * 5;
 /* Port n Write QoS Confguration register 1 */
-pub const UDDRC_PCFGWQOS1_5: usize = UDDRC_PCFGWQOS1_0 + 0xB0 * 5;
+pub const UDDRC_PCFGWQOS1_5: usize = UDDRC_PCFGWQOS1_0 + UDDRC_PORT_SIZE * 5;
 /* SAR Base Address Register 0 */
 pub const UDDRC_SARBASE0: usize = 0xF04;
 /* SAR Size Register 0 */
@@ -1993,6 +1994,8 @@ pub const UDDRC_DFISTAT: usize = 0x1BC;
 pub const UDDRC_DBICTL: usize = 0x1C0;
 /* (UDDRC_REGS Offset: 0x1C4) DFI PHY Master */
 pub const UDDRC_DFIPHYMSTR: usize = 0x1C4;
+/* (UDDRC_REGS Offset: 0x200) Address Map Register 1 */
+pub const UDDRC_ADDRMAP0: usize = 0x200;
 /* (UDDRC_REGS Offset: 0x204) Address Map Register 1 */
 pub const UDDRC_ADDRMAP1: usize = 0x204;
 /* (UDDRC_REGS Offset: 0x208) Address Map Register 2 */
@@ -4460,6 +4463,13 @@ pub const UDDRC_DBICTL_RD_DBI_EN: u32 = 0x1u32 << 2;
 *   - 1 - Enabled
 */
 pub const UDDRC_DFIPHYMSTR_DFI_PHYMSTR_EN: u32 = 0x1u32 << 0;
+
+pub const UDDRC_ADDRMAP0_CS_B0_POS: u32 = 0;
+pub const UDDRC_ADDRMAP0_CS_B0_MSK: u32 = 0x1fu32 << UDDRC_ADDRMAP0_CS_B0_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ADDRMAP0_CS_B0(value: u32) -> u32 {
+    UDDRC_ADDRMAP0_CS_B0_MSK & ((value) << UDDRC_ADDRMAP0_CS_B0_POS)
+}
 
 /* -------- UDDRC_ADDRMAP1 : (UDDRC_REGS Offset: 0x204)
 * Address Map Register 1 --------

@@ -32,27 +32,38 @@ impl Clint {
         }
     }
 
-    pub fn set_timer(&self, hart_id: usize, instant: u64) {
+    pub fn set_timer(&self, target_id: usize, instant: u64) {
         if self.access_64 {
-            io_write64!(self.base + TIMER_OFF + (hart_id << 3), instant)
+            io_write64!(self.base + TIMER_OFF + (target_id << 3), instant)
         } else {
-            io_write32!(self.base + TIMER_OFF + (hart_id << 3), instant as u32);
+            io_write32!(self.base + TIMER_OFF + (target_id << 3), instant as u32);
             io_write32!(
-                self.base + TIMER_OFF + (hart_id << 3) + 4,
+                self.base + TIMER_OFF + (target_id << 3) + 4,
                 (instant >> 32) as u32
             );
         }
     }
 
-    pub fn send_soft(&self, hart_id: usize) {
-        io_write32!(self.base + (hart_id << 2), 1)
+    pub fn send_soft(&self, target_id: usize) {
+        io_write32!(self.base + (target_id << 2), 1)
     }
 
-    pub fn read_soft(&self, hart_id: usize) -> bool {
-        io_read32!(self.base + (hart_id << 2)) != 0
+    pub fn read_soft(&self, target_id: usize) -> bool {
+        io_read32!(self.base + (target_id << 2)) != 0
     }
 
-    pub fn clear_soft(&self, hart_id: usize) {
-        io_write32!(self.base + (hart_id << 2), 0)
+    pub fn clear_soft(&self, target_id: usize) {
+        io_write32!(self.base + (target_id << 2), 0)
     }
+}
+
+#[no_mangle]
+extern "C" fn clint_get_mtime(c: &Clint) -> u64 {
+    c.get_mtime()
+}
+
+#[linkage = "weak"]
+#[no_mangle]
+extern "C" fn clint_set_timer(c: &Clint, instant: u64) {
+    c.set_timer(crate::hartid(), instant)
 }

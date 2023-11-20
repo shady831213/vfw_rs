@@ -67,13 +67,4 @@ extern void wait_mcycle64(uint64_t cnt);
     assert((get_sp() <= start) && (get_sp() > end)); \
 })
 
-
-typedef void* plic_t;
-
-extern uint32_t plic_max_pri(plic_t plic);
-extern void plic_set_pri(plic_t plic, uint32_t irq, uint32_t pri);
-extern void plic_raise_int(plic_t plic, uint32_t irq);
-extern void plic_set_threshold(plic_t plic, uint32_t threshold);
-extern void plic_enable(plic_t plic, uint32_t irq);
-extern void plic_disable(plic_t plic, uint32_t irq);
 #endif

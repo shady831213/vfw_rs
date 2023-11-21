@@ -105,24 +105,17 @@ extern "C" fn mailbox_cprint(
     fmt: *const u8,
     file: *const u8,
     line: u32,
-    arg_len: u32,
+    arg_len: usize,
     args: *const usize,
 ) {
-    mb_cprint(
-        &mut mb_sender(),
-        fmt,
-        file,
-        line,
-        arg_len as MBPtrT,
-        args as *const MBPtrT,
-    )
+    mb_cprint(&mut mb_sender(), fmt, file, line, arg_len, args)
 }
 
 #[macro_export]
 macro_rules! cprint {
     ($fmt:expr) => {{
         extern "C" {
-            fn mailbox_cprint(fmt: *const u8, file: *const u8, line: u32, arg_len: u32, args: *const usize);
+            fn mailbox_cprint(fmt: *const u8, file: *const u8, line: u32, arg_len: usize, args: *const usize);
         }
         let args:[usize;0] = [0;0];
         unsafe {
@@ -137,7 +130,7 @@ macro_rules! cprint {
     }};
     ($fmt:expr, $($arg:expr),*) => {{
         extern "C" {
-            fn mailbox_cprint(fmt: *const u8, file: *const u8, line: u32, arg_len: u32, args: *const usize);
+            fn mailbox_cprint(fmt: *const u8, file: *const u8, line: u32, arg_len: usize, args: *const usize);
         }
         let args = [$($arg as usize,)*];
         unsafe {
@@ -159,13 +152,8 @@ macro_rules! cprintln {
 }
 
 #[no_mangle]
-extern "C" fn mailbox_call(method: *const u8, arg_len: u32, args: *const usize) -> u32 {
-    mb_call(
-        &mut mb_sender(),
-        method,
-        arg_len as MBPtrT,
-        args as *const MBPtrT,
-    ) as u32
+extern "C" fn mailbox_call(method: *const u8, arg_len: usize, args: *const usize) -> usize {
+    mb_call(&mut mb_sender(), method, arg_len, args) as usize
 }
 
 #[no_mangle]
@@ -177,7 +165,7 @@ unsafe extern "C" fn __assert_func(file: *const u8, line: usize, func: *const u8
             .as_ptr(),
         core::concat!(file!(), "\0").as_bytes().as_ptr(),
         line!(),
-        args.len() as u32,
+        args.len(),
         args.as_ptr(),
     );
     panic!()
@@ -188,8 +176,8 @@ macro_rules! mbcall {
     ($method:expr) => {{
         extern "C" {
             fn mailbox_call(method: *const u8,
-                arg_len: u32,
-                args: *const usize) -> u32;
+                arg_len: usize,
+                args: *const usize) -> usize;
         }
         let args:[usize;0] = [0;0];
         unsafe {
@@ -203,14 +191,14 @@ macro_rules! mbcall {
     ($method:expr, $($arg:expr),*) => {{
         extern "C" {
             fn mailbox_call(method: *const u8,
-                arg_len: u32,
-                args: *const usize) -> u32;
+                arg_len: usize,
+                args: *const usize) -> usize;
         }
         let args = [$($arg as usize,)*];
         unsafe {
             mailbox_call(
                 core::concat!($method, "\0").as_bytes().as_ptr(),
-                args.len() as u32,
+                args.len(),
                 args.as_ptr(),
             )
         }
@@ -229,24 +217,19 @@ pub fn mailbox_exit(code: u32) -> ! {
 
 #[no_mangle]
 extern "C" fn mailbox_memmove(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {
-    mb_memmove(&mut mb_sender(), dest as MBPtrT, src as MBPtrT, n as MBPtrT);
+    mb_memmove(&mut mb_sender(), dest as MBPtrT, src as MBPtrT, n);
     dest
 }
 
 #[no_mangle]
 extern "C" fn mailbox_memset(dest: *mut u8, data: i32, n: usize) -> *mut u8 {
-    mb_memset(
-        &mut mb_sender(),
-        dest as MBPtrT,
-        data as MBPtrT,
-        n as MBPtrT,
-    );
+    mb_memset(&mut mb_sender(), dest as MBPtrT, data as MBPtrT, n);
     dest
 }
 
 #[no_mangle]
 extern "C" fn mailbox_memcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
-    mb_memcmp(&mut mb_sender(), s1 as MBPtrT, s2 as MBPtrT, n as MBPtrT)
+    mb_memcmp(&mut mb_sender(), s1 as MBPtrT, s2 as MBPtrT, n)
 }
 
 #[no_mangle]
@@ -261,12 +244,12 @@ pub fn mailbox_fclose(fb: u32) {
 
 #[no_mangle]
 extern "C" fn mailbox_fread(fb: u32, ptr: *mut u8, len: usize) -> usize {
-    mb_fread(&mut mb_sender(), fb, ptr as MBPtrT, len as MBPtrT)
+    mb_fread(&mut mb_sender(), fb, ptr as MBPtrT, len)
 }
 
 #[no_mangle]
 extern "C" fn mailbox_fwrite(fb: u32, ptr: *const u8, len: usize) -> usize {
-    mb_fwrite(&mut mb_sender(), fb, ptr as MBPtrT, len as MBPtrT)
+    mb_fwrite(&mut mb_sender(), fb, ptr as MBPtrT, len)
 }
 
 #[no_mangle]

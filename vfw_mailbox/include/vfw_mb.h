@@ -2,12 +2,12 @@
 #define __VFW_MB_H__
 #include <stdint.h>
 #include <vfw_primitives.h>
-extern void mailbox_cprint(const char *fmt, const char *file, unsigned int line, unsigned int arg_len, uintptr_t *args);
-static inline void printf_wrapper(const char *file, unsigned int line, unsigned int args_len, ...)
+extern void mailbox_cprint(const char *fmt, const char *file, unsigned int line, uintptr_t arg_len, uintptr_t *args);
+static inline void printf_wrapper(const char *file, unsigned int line, uintptr_t args_len, ...)
 {
     uintptr_t buf[16];
     const char *fmt;
-    unsigned int num_args = (args_len - 1) > 16 ? 16 : args_len - 1;
+    uintptr_t num_args = (args_len - 1) > 16 ? 16 : args_len - 1;
     va_args_to_ptr(fmt, buf, num_args, args_len, const char *, uintptr_t);
     mailbox_cprint(fmt, file, line, num_args, buf);
 }
@@ -17,16 +17,15 @@ static inline void printf_wrapper(const char *file, unsigned int line, unsigned 
     (uintptr_t)(*(uint32_t *)(&_f)); \
 })
 
-extern unsigned int mailbox_call(const char *method, unsigned int arg_len, uintptr_t *args);
-static inline unsigned int mbcall_wrapper(unsigned int args_len, ...)
+extern uintptr_t mailbox_call(const char *method, uintptr_t arg_len, uintptr_t *args);
+static inline uintptr_t mbcall_wrapper(uintptr_t args_len, ...)
 {
     uintptr_t buf[16];
     const char *method;
-    unsigned int num_args = (args_len - 1) > 16 ? 16 : args_len - 1;
+    uintptr_t num_args = (args_len - 1) > 16 ? 16 : args_len - 1;
     va_args_to_ptr(method, buf, num_args, args_len, const char *, uintptr_t);
     return mailbox_call(method, num_args, buf);
 }
-#define svcall(...) mbcall_wrapper(COUNT_VARGS(__VA_ARGS__), __VA_ARGS__)
 #define mbcall(...) mbcall_wrapper(COUNT_VARGS(__VA_ARGS__), __VA_ARGS__)
 
 #define MB_FILE_READ 0x1
@@ -56,8 +55,8 @@ static inline unsigned int mbcall_wrapper(unsigned int args_len, ...)
 
 extern unsigned int mailbox_fopen(const char *path, unsigned int flags);
 extern void mailbox_fclose(unsigned int fd);
-extern unsigned int mailbox_fread(unsigned int fd, void *buf, unsigned int len);
-extern unsigned int mailbox_fwrite(unsigned int fd, const void *buf, unsigned int len);
+extern unsigned int mailbox_fread(unsigned int fd, void *buf, uintptr_t len);
+extern unsigned int mailbox_fwrite(unsigned int fd, const void *buf, uintptr_t len);
 extern unsigned int mailbox_fseek(unsigned int fd, unsigned int pos);
 
 static inline FD fopen(const char *path, unsigned int flags)
@@ -80,16 +79,16 @@ static inline unsigned int fseek(FD fd, unsigned int pos)
 }
 
 
-extern void* mailbox_memmove(void *dest, const void *src, unsigned int size);
-extern void* mailbox_memset(void *dest, int data, unsigned int size);
-extern int mailbox_memcmp(const void *s1, const void *s2, unsigned int size);
+extern void* mailbox_memmove(void *dest, const void *src, uintptr_t size);
+extern void* mailbox_memset(void *dest, int data, uintptr_t size);
+extern int mailbox_memcmp(const void *s1, const void *s2, uintptr_t size);
 
-#define bd_memmove(dest, src, size) mailbox_memmove((void *)(dest), (void *)(src), (unsigned int)(size))
+#define bd_memmove(dest, src, size) mailbox_memmove((void *)(dest), (void *)(src), (uintptr_t)(size))
 
-#define bd_memcpy(dest, src, size) mailbox_memmove((void *)(dest), (void *)(src), (unsigned int)(size))
+#define bd_memcpy(dest, src, size) mailbox_memmove((void *)(dest), (void *)(src), (uintptr_t)(size))
 
-#define bd_memset(dest, data, size) mailbox_memset((void *)(dest), (unsigned int)((unsigned char)(data)), (unsigned int)(size))
+#define bd_memset(dest, data, size) mailbox_memset((void *)(dest), (unsigned int)((unsigned char)(data)), (uintptr_t)(size))
 
-#define bd_memcmp(s1, s2, size) mailbox_memcmp((void *)(s1), (void *)(s2), (unsigned int)(size))
+#define bd_memcmp(s1, s2, size) mailbox_memcmp((void *)(s1), (void *)(s2), (uintptr_t)(size))
 
 #endif

@@ -8,21 +8,18 @@ links = "vfw_mailbox"
 
 [dependencies]
 vfw_primitives = {path = "../vfw_primitives"}
+mailbox_rs = { git = "https://github.com/shady831213/mailbox_rs", features = ["no_std"]}
 
 [target.'cfg(any(target_arch = "riscv32", target_arch = "riscv64"))'.dependencies]
 riscv = { version = "0.10" }
-
-[target.'cfg(target_pointer_width = "32")'.dependencies]
-mailbox_rs = { git = "https://github.com/shady831213/mailbox_rs", features = ["no_std", "ptr32"]}
-
-[target.'cfg(target_pointer_width = "64")'.dependencies]
-mailbox_rs = { git = "https://github.com/shady831213/mailbox_rs", features = ["no_std", "ptr64"]}
 
 [build-dependencies]
 vfw_build_utils = {git = "https://github.com/shady831213/vfw_build_utils"}
 
 [features]
 reloc = []
+ptr64 = ["mailbox_rs/ptr64"]
+ptr32 = ["mailbox_rs/ptr32"]
 max_chs_1 = []
 max_chs_2 = []
 max_chs_4 = []

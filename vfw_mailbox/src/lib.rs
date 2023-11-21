@@ -138,7 +138,7 @@ macro_rules! cprint {
                 core::concat!($fmt, "\0").as_bytes().as_ptr(),
                 core::concat!(file!(), "\0").as_bytes().as_ptr(),
                 line!(),
-                args.len() as u32,
+                args.len(),
                 args.as_ptr(),
             );
         }

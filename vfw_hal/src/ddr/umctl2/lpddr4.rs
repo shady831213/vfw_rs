@@ -141,14 +141,14 @@ pub trait Umctl2Lpddr4: Umctrl2MPhyV2 {
         let timing = self.lpddr4_timing();
         self.write_ctrl_reg(
             regs::UDDRC_ZQCTL0,
-            regs::UDDRC_ZQCTL0_T_ZQ_SHORT_NOP(timing.n_zq_short_nop)
-                | regs::UDDRC_ZQCTL0_T_ZQ_LONG_NOP(timing.n_zq_long_nop)
+            regs::UDDRC_ZQCTL0_T_ZQ_SHORT_NOP(self.div_ratio(timing.n_zq_short_nop))
+                | regs::UDDRC_ZQCTL0_T_ZQ_LONG_NOP(self.div_ratio(timing.n_zq_long_nop))
                 | regs::UDDRC_ZQCTL0_DIS_SRX_ZQCL
                 | regs::UDDRC_ZQCTL0_DIS_AUTO_ZQ,
         ); //(            ZQCTL0)
         self.write_ctrl_reg(
             regs::UDDRC_ZQCTL1,
-            regs::UDDRC_ZQCTL1_T_ZQ_RESET_NOP(timing.n_zq_reset_nop),
+            regs::UDDRC_ZQCTL1_T_ZQ_RESET_NOP(self.div_ratio(timing.n_zq_reset_nop)),
         ); //(            ZQCTL1)
     }
 }

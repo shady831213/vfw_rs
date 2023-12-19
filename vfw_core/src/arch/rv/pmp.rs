@@ -71,12 +71,3 @@ macro_rules! pmp_lock {
         crate::set_csr!(pmp_cfg_csr($id), pmp_cfg_enc($id, PMP_L));
     }};
 }
-
-#[macro_export]
-macro_rules! pmp_unlock {
-    ($id:expr) => {{
-        const PMP_L: u8 = 0x80;
-        crate::clr_csr!(pmp_cfg_csr($id), pmp_cfg_enc($id, PMP_L));
-        ((crate::read_csr!(pmp_cfg_csr($id)) >> (($id & 0x3) << 3)) as usize & PMP_L) == 0
-    }};
-}

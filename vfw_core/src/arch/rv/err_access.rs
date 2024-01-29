@@ -102,13 +102,12 @@ pub fn check_read32_with_err(addr: *mut u32, read_ignore: bool) -> Result<(), ()
 }
 
 pub unsafe fn io_access_err_expt_handler(ctx: &mut crate::arch::FlowContext) {
-    use riscv::register::mepc;
     use vfw_primitives::io_read8;
-    let is_c = (io_read8!(mepc::read()) & 0x3) != 0x3;
+    let is_c = (io_read8!(ctx.pc) & 0x3) != 0x3;
     ctx.t[0] = 0xdeadbeaf;
     if is_c {
-        mepc::write(mepc::read().wrapping_add(2))
+        ctx.pc = ctx.pc.wrapping_add(2)
     } else {
-        mepc::write(mepc::read().wrapping_add(4))
+        ctx.pc = ctx.pc.wrapping_add(4)
     }
 }

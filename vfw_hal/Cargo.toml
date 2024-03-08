@@ -10,7 +10,7 @@ links = "vfw_hal"
 vfw_primitives = {path = "../vfw_primitives"}
 spin = { version = "0.9" }
 nb = "1.1"
-embedded-hal = "0.2"
+embedded-hal = "1.0"
 
 [build-dependencies]
 vfw_build_utils = {git = "https://github.com/shady831213/vfw_build_utils"}

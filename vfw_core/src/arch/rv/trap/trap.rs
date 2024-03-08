@@ -83,7 +83,7 @@ mod arch {
 pub extern "C" fn trap_handler(ctx: &mut FlowContext) {
     match mcause::read().cause() {
         T::Exception(_) => exception_handler(ctx),
-        T::Interrupt(i) => interrupt_handler(ctx, Interrupt::from(i)),
+        T::Interrupt(i) => interrupt_handler(ctx, i),
     }
 }
 

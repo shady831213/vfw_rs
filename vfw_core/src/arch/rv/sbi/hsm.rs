@@ -35,9 +35,7 @@ impl rustsbi::Hsm for SbiHSM {
             HART_SUSPEND_TYPE_NON_RETENTIVE | HART_SUSPEND_TYPE_RETENTIVE
         ) {
             unsafe { cpu_ctx(hartid()).hsm.local() }.suspend();
-            unsafe {
-                riscv::asm::wfi();
-            }
+            riscv::asm::wfi();
             unsafe { cpu_ctx(hartid()).hsm.local() }.resume();
 
             SbiRet::success(0)

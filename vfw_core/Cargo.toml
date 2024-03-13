@@ -14,7 +14,7 @@ paste =  { version = "1"}
 [target.'cfg(any(target_arch = "riscv32", target_arch = "riscv64"))'.dependencies]
 riscv = { version = "0.11" }
 rustsbi = "0.3"
-sbi-spec = {version = "0.0", features = ["legacy"]}
+sbi-spec = {version = "0.0.6", features = ["legacy"]}
 
 [build-dependencies]
 vfw_build_utils = {git = "https://github.com/shady831213/vfw_build_utils"}

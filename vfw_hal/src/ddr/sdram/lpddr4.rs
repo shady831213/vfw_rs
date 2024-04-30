@@ -1,4 +1,31 @@
-use super::super::common::DdrSpeed;
+use super::super::common::*;
+pub fn lpddr4_layout(
+    ranks: Option<DdrRankNum>,
+    rank_size: DdrRankSize,
+    chs: usize,
+) -> Option<DdrLayout> {
+    let rows = match rank_size {
+        DdrRankSize::Rank128Mbyte => Some(1 << 13),
+        DdrRankSize::Rank256Mbyte => Some(1 << 14),
+        DdrRankSize::Rank384Mbyte => Some(1 << 15),
+        DdrRankSize::Rank512Mbyte => Some(1 << 15),
+        DdrRankSize::Rank768Mbyte => Some(1 << 16),
+        DdrRankSize::Rank1024Mbyte => Some(1 << 16),
+        DdrRankSize::Rank1536Mbyte => Some(1 << 17),
+        DdrRankSize::Rank2048Mbyte => Some(1 << 17),
+    };
+
+    rows.map(|r| DdrLayout {
+        ranks,
+        rank_size,
+        bus_width: 2,
+        chs,
+        bl: DdrBl::Bl16,
+        cols: 64,
+        rows: r,
+        banks: 8,
+    })
+}
 #[allow(non_snake_case)]
 pub struct Lpddr4Timing {
     pub tRASmin: f32,   //by ns

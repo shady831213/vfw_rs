@@ -38,6 +38,28 @@ pub trait Umctrl2MPhyV2: DdrDriver {
         self.write_ctrl_reg(UDDRC_SWCTL, 0);
     }
 
+    fn mr_wr(&self, reg: usize, value: u32) {
+        loop {
+            if self.read_ctrl_reg(UDDRC_MRSTAT) & UDDRC_MRSTAT_MR_WR_BUSY == 0 {
+                break;
+            }
+        }
+        self.write_ctrl_reg(
+            UDDRC_MRCTRL1,
+            (0xff00u32 & ((reg as u32) << 8)) | (0xff & value),
+        );
+        self.write_ctrl_reg(UDDRC_MRCTRL0, UDDRC_MRCTRL0_MR_RANK(0xf));
+        self.write_ctrl_reg(
+            UDDRC_MRCTRL0,
+            UDDRC_MRCTRL0_MR_RANK(0xf) | UDDRC_MRCTRL0_MR_WR,
+        );
+        loop {
+            if self.read_ctrl_reg(UDDRC_MRCTRL0) & UDDRC_MRCTRL0_MR_WR == 0 {
+                break;
+            }
+        }
+    }
+
     fn div_ratio(&self, n_t: u32) -> u32 {
         if self.freq_ratio2() {
             (n_t + 1) >> 1
@@ -126,10 +148,21 @@ pub trait Umctrl2MPhyV2: DdrDriver {
     fn schd_cfg(&self);
     fn reset_core(&self);
     fn dereset_core(&self);
+    fn post_init_cfg(&self) {}
     fn init_umctrl2(&self) {
         // ----DWC_ddr_umctl2 and Memory Initialization with LPDDR4 mPHY_v2:step 1
         self.reset_core();
         // ----DWC_ddr_umctl2 and Memory Initialization with LPDDR4 mPHY_v2:step 2
+        //config bl and ranks, static_cfg can override it
+        self.write_ctrl_reg(
+            UDDRC_MSTR,
+            UDDRC_MSTR_BURST_RDWR(((self.layout().bl as usize) >> 1) as u32)
+                | self
+                    .layout()
+                    .ranks
+                    .map(|r| UDDRC_MSTR_ACTIVE_RANKS(((1 << (r as usize)) - 1) as u32))
+                    .unwrap_or(0),
+        );
         //static cfgs
         self.static_cfg();
         self.sdram_init_cfg();
@@ -159,9 +192,58 @@ pub trait Umctrl2MPhyV2: DdrDriver {
         }
         // ----DWC_ddr_umctl2 and Memory Initialization with LPDDR4 mPHY_v2:step 22-26
         self.wait_init_done(pwrctl, rfshctl3);
+        self.post_init_cfg();
         // other operations
         self.ports_cfg();
         self.schd_cfg();
+    }
+    fn inline_ecc(&self) {
+        self.write_ctrl_reg(
+            UDDRC_ECCCFG0,
+            (self.read_ctrl_reg(UDDRC_ECCCFG0) & !UDDRC_ECCCFG0_ECC_MODE_MSK)
+                | UDDRC_ECCCFG0_ECC_MODE(UDDRC_ECCCFG0_ECC_MODE_ECCENABLED),
+        );
+    }
+    fn inline_ecc_poison(&self) {
+        self.write_ctrl_reg(
+            UDDRC_ECCCFG1,
+            self.read_ctrl_reg(UDDRC_ECCCFG1) & !UDDRC_ECCCFG1_ECC_REGION_PARITY_LOCK,
+        );
+    }
+    fn scrub_init(&self, range: core::ops::Range<u64>, pat: u64) {
+        let htif_range_start = range.start >> (self.layout().data_width() as u64);
+        let htif_range_end = (range.end - 1) >> (self.layout().data_width() as u64);
+        // Priming the entire DDR space in inline_ecc mode
+        self.write_ctrl_reg(
+            UDDRC_SBRCTL,
+            UDDRC_SBRCTL_SCRUB_MODE
+                    | UDDRC_SBRCTL_SCRUB_BURST(1) // 8 Burst for 1 block
+                    | UDDRC_SBRCTL_SCRUB_INTERVAL(0), // Back to back write for Priming DDR
+        );
+        self.write_ctrl_reg(UDDRC_SBRWDATA0, pat as u32);
+        self.write_ctrl_reg(UDDRC_SBRWDATA1, (pat >> 32) as u32);
+        // Config the scrub address range. Address is HIF address
+        // Start from 0
+        self.write_ctrl_reg(UDDRC_SBRSTART0, htif_range_start as u32);
+        self.write_ctrl_reg(UDDRC_SBRSTART1, (htif_range_start >> 32) as u32);
+
+        self.write_ctrl_reg(UDDRC_SBRRANGE0, htif_range_end as u32);
+        self.write_ctrl_reg(UDDRC_SBRRANGE1, (htif_range_end >> 32) as u32);
+
+        //Enable the Scrubber
+        self.set_ctrl_reg(UDDRC_SBRCTL, UDDRC_SBRCTL_SCRUB_EN);
+
+        //Polling scrub done
+        loop {
+            let sbrstat = self.read_ctrl_reg(UDDRC_SBRSTAT);
+            if ((sbrstat & UDDRC_SBRSTAT_SCRUB_DONE) != 0)
+                && ((sbrstat & UDDRC_SBRSTAT_SCRUB_BUSY) == 0)
+            {
+                break;
+            }
+        }
+        // Disable scrub
+        self.write_ctrl_reg(UDDRC_SBRCTL, 0x0);
     }
     fn load_phy_fw(&self, base: usize, offset: usize, fw: &[u16]);
     fn handle_training_status(&self, status: u8) -> bool {

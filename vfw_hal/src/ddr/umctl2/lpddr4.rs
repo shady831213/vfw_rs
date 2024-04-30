@@ -70,6 +70,9 @@ impl Umctl2Lpddr4TimingCfg {
 }
 
 pub trait Umctl2Lpddr4: Umctrl2MPhyV2 {
+    fn lpddr4_static_cfg(&self) {
+        self.set_ctrl_reg(regs::UDDRC_MSTR, regs::UDDRC_MSTR_LPDDR4);
+    }
     fn lpddr4_timing(&self) -> &Umctl2Lpddr4TimingCfg;
     //all neccessary timing cfg refer to 2.20.8 Registers Related to Dynamic SDRAM Constraints
     fn lpddr4_cfg_timing(&self) {
@@ -150,5 +153,160 @@ pub trait Umctl2Lpddr4: Umctrl2MPhyV2 {
             regs::UDDRC_ZQCTL1,
             regs::UDDRC_ZQCTL1_T_ZQ_RESET_NOP(self.div_ratio(timing.n_zq_reset_nop)),
         ); //(            ZQCTL1)
+    }
+
+    fn lpddr4_address_map_set_unused(&self) {
+        let layout = self.layout();
+        if let Some(rank_width) = layout.rank_width() {
+            if rank_width < 2 {
+                self.set_ctrl_reg(
+                    regs::UDDRC_ADDRMAP0,
+                    regs::UDDRC_ADDRMAP0_CS_B1(regs::UDDRC_ADDRMAP_DISABLE),
+                )
+            }
+            if rank_width < 1 {
+                self.set_ctrl_reg(
+                    regs::UDDRC_ADDRMAP0,
+                    regs::UDDRC_ADDRMAP0_CS_B0(regs::UDDRC_ADDRMAP_DISABLE),
+                )
+            }
+        }
+        self.set_ctrl_reg(
+            regs::UDDRC_ADDRMAP7,
+            regs::UDDRC_ADDRMAP7_ADDRMAP_ROW_B17(regs::UDDRC_ADDRMAP_DISABLE),
+        ); //(          ADDRMAP7)
+        if layout.row_width() < 17 {
+            self.set_ctrl_reg(
+                regs::UDDRC_ADDRMAP7,
+                regs::UDDRC_ADDRMAP7_ADDRMAP_ROW_B16(regs::UDDRC_ADDRMAP_DISABLE),
+            ); //(          ADDRMAP7)
+        }
+        if layout.row_width() < 16 {
+            self.set_ctrl_reg(
+                regs::UDDRC_ADDRMAP6,
+                regs::UDDRC_ADDRMAP6_ADDRMAP_ROW_B15(regs::UDDRC_ADDRMAP_DISABLE),
+            ); //(          ADDRMAP6)
+        }
+        if layout.row_width() < 15 {
+            self.set_ctrl_reg(
+                regs::UDDRC_ADDRMAP6,
+                regs::UDDRC_ADDRMAP6_ADDRMAP_ROW_B14(regs::UDDRC_ADDRMAP_DISABLE),
+            ); //(          ADDRMAP6)
+        }
+
+        //col width = 10, hif_col_range[9:0], axi_col_range[10:0]
+        self.write_ctrl_reg(
+            regs::UDDRC_ADDRMAP4,
+            regs::UDDRC_ADDRMAP4_ADDRMAP_COL_B10(regs::UDDRC_ADDRMAP_DISABLE)
+                | regs::UDDRC_ADDRMAP4_ADDRMAP_COL_B11(regs::UDDRC_ADDRMAP_DISABLE),
+        ); //(          ADDRMAP4)
+    }
+
+    fn lpddr4_address_map_cfg_rank(&self, offset: u32) {
+        let layout = self.layout();
+        match layout.rank_width() {
+            Some(1) => {
+                self.write_ctrl_reg(regs::UDDRC_ADDRMAP0, regs::UDDRC_ADDRMAP0_CS_B0(offset))
+            }
+            Some(2) => self.write_ctrl_reg(
+                regs::UDDRC_ADDRMAP0,
+                regs::UDDRC_ADDRMAP0_CS_B0(offset) | regs::UDDRC_ADDRMAP0_CS_B1(offset),
+            ),
+            _ => {}
+        }
+    }
+
+    fn lpddr4_address_map_cfg_row(&self, offset: u32) {
+        let layout = self.layout();
+        self.write_ctrl_reg(
+            regs::UDDRC_ADDRMAP5,
+            regs::UDDRC_ADDRMAP5_ADDRMAP_ROW_B0(offset)
+                | regs::UDDRC_ADDRMAP5_ADDRMAP_ROW_B1(offset)
+                | regs::UDDRC_ADDRMAP5_ADDRMAP_ROW_B2_10(offset)
+                | regs::UDDRC_ADDRMAP5_ADDRMAP_ROW_B11(offset),
+        ); //(          ADDRMAP5)
+        self.write_ctrl_reg(
+            regs::UDDRC_ADDRMAP6,
+            regs::UDDRC_ADDRMAP6_ADDRMAP_ROW_B12(offset)
+                | regs::UDDRC_ADDRMAP6_ADDRMAP_ROW_B13(offset),
+        ); //(          ADDRMAP6)
+        if layout.row_width() > 14 {
+            self.set_ctrl_reg(
+                regs::UDDRC_ADDRMAP6,
+                regs::UDDRC_ADDRMAP6_ADDRMAP_ROW_B14(offset),
+            ); //(          ADDRMAP6)
+        }
+        if layout.row_width() > 15 {
+            self.set_ctrl_reg(
+                regs::UDDRC_ADDRMAP6,
+                regs::UDDRC_ADDRMAP6_ADDRMAP_ROW_B15(offset),
+            ); //(          ADDRMAP6)
+        }
+        if layout.row_width() > 16 {
+            self.write_ctrl_reg(
+                regs::UDDRC_ADDRMAP7,
+                regs::UDDRC_ADDRMAP7_ADDRMAP_ROW_B16(offset),
+            ); //(          ADDRMAP7)
+        }
+    }
+
+    fn lpddr4_address_map_cfg_brc(&self) {
+        let layout = self.layout();
+        // Note: This direct address map strategy is for simulation/emulation backdoor access
+        // For real chip, other more effecient address map stragegy should be taken, such as bank-row switched address map
+        //hif_address = rank, bank, row, col
+        let rank_offset = layout.ddr_1rank_width() as u32 - 6;
+        self.lpddr4_address_map_cfg_rank(rank_offset);
+        let bank_offset = layout.ddr_1bank_width() as u32 - 2;
+        self.write_ctrl_reg(
+            regs::UDDRC_ADDRMAP1,
+            regs::UDDRC_ADDRMAP1_ADDRMAP_BANK_B0(bank_offset)
+                | regs::UDDRC_ADDRMAP1_ADDRMAP_BANK_B1(bank_offset)
+                | regs::UDDRC_ADDRMAP1_ADDRMAP_BANK_B2(bank_offset),
+        ); //(          ADDRMAP1)
+
+        let row_offset = layout.col_width() as u32 - 6;
+
+        self.lpddr4_address_map_cfg_row(row_offset);
+        self.lpddr4_address_map_set_unused();
+    }
+
+    fn lpddr4_address_map_cfg(&self) {
+        let layout = self.layout();
+        //config col7-9 to highest， col4-6 to 6-8
+        let col7_offset = (layout.ddr_width() - 3) as u32 - 7;
+        self.write_ctrl_reg(
+            regs::UDDRC_ADDRMAP3,
+            regs::UDDRC_ADDRMAP3_ADDRMAP_COL_B6(2)
+                | regs::UDDRC_ADDRMAP3_ADDRMAP_COL_B7(col7_offset)
+                | regs::UDDRC_ADDRMAP3_ADDRMAP_COL_B8(col7_offset)
+                | regs::UDDRC_ADDRMAP3_ADDRMAP_COL_B9(col7_offset),
+        ); //(          ADDRMAP3)
+
+        self.write_ctrl_reg(
+            regs::UDDRC_ADDRMAP2,
+            regs::UDDRC_ADDRMAP2_ADDRMAP_COL_B2(0)
+                | regs::UDDRC_ADDRMAP2_ADDRMAP_COL_B3(0)
+                | regs::UDDRC_ADDRMAP2_ADDRMAP_COL_B4(2)
+                | regs::UDDRC_ADDRMAP2_ADDRMAP_COL_B5(2),
+        ); //(          ADDRMAP2)
+
+        //config bank0-1 to 4-5, bank2 to 9
+        self.write_ctrl_reg(
+            regs::UDDRC_ADDRMAP1,
+            regs::UDDRC_ADDRMAP1_ADDRMAP_BANK_B0(2)
+                | regs::UDDRC_ADDRMAP1_ADDRMAP_BANK_B1(2)
+                | regs::UDDRC_ADDRMAP1_ADDRMAP_BANK_B2(5),
+        ); //(          ADDRMAP1)
+
+        //row from 10
+        const ROW_OFFSET: u32 = 10 - 6;
+        self.lpddr4_address_map_cfg_row(ROW_OFFSET);
+
+        //rank between 3 msb and rows
+        let rank_offset = (layout.ddr_width() - 3 - layout.rank_width().unwrap_or(0)) as u32 - 6;
+        self.lpddr4_address_map_cfg_rank(rank_offset);
+
+        self.lpddr4_address_map_set_unused();
     }
 }

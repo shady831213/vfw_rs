@@ -1,46 +1,13 @@
-[package]
-name = "vfw_rs"
-version = "0.1.0"
-edition = "2021"
-links = "vfw_rs"
+[workspace]
+members = [
+    "vfw_hal",
+    "vfw_core",
+    "vfw_mailbox",
+    "vfw_primitives",
+    "vfw_utils",
+]
+resolver = "2"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-vfw_primitives = {path = "vfw_primitives"}
-vfw_utils = {path = "vfw_utils"}
-vfw_core = {path = "vfw_core"}
-vfw_hal = {path = "vfw_hal"}
-vfw_mailbox = {path = "vfw_mailbox"}
-
-[build-dependencies]
+[workspace.dependencies]
+riscv = { version = "0.11" }
 vfw_build_utils = {git = "https://github.com/shady831213/vfw_build_utils"}
-
-[features]
-reloc = ["vfw_core/reloc", "vfw_mailbox/reloc"]
-full_panic = ["vfw_primitives/full_panic"]
-cpu_data_non_priv = ["vfw_core/cpu_data_non_priv"]
-stack_non_priv = ["vfw_core/stack_non_priv"]
-max_cores_1 = ["vfw_core/max_cores_1"]
-max_cores_2 = ["vfw_core/max_cores_2"]
-max_cores_4 = ["vfw_core/max_cores_4"]
-max_cores_8 = ["vfw_core/max_cores_8"]
-max_cores_16 = ["vfw_core/max_cores_16"]
-max_cores_32 = ["vfw_core/max_cores_32"]
-max_cores_64 = ["vfw_core/max_cores_64"]
-max_cores_128 = ["vfw_core/max_cores_128"]
-ptr64 = ["vfw_mailbox/ptr64"]
-ptr32 = ["vfw_mailbox/ptr32"]
-max_chs_1 = ["vfw_mailbox/max_chs_1"]
-max_chs_2 = ["vfw_mailbox/max_chs_2"]
-max_chs_4 = ["vfw_mailbox/max_chs_4"]
-max_chs_8 = ["vfw_mailbox/max_chs_8"]
-max_chs_16 = ["vfw_mailbox/max_chs_16"]
-max_chs_32 = ["vfw_mailbox/max_chs_32"]
-max_chs_64 = ["vfw_mailbox/max_chs_64"]
-max_chs_128 = ["vfw_mailbox/max_chs_128"]
-cache_line_32 =["vfw_mailbox/cache_line_32"]
-cache_line_64 =["vfw_mailbox/cache_line_64"]
-cache_line_128 =["vfw_mailbox/cache_line_128"]
-cache_line_256 =["vfw_mailbox/cache_line_256"]
-alloc = ["vfw_hal/alloc", "vfw_utils/alloc"]

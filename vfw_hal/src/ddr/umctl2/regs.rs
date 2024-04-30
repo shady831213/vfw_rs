@@ -109,6 +109,22 @@ pub const UDDRC_PCFGWQOS1_5: usize = UDDRC_PCFGWQOS1_0 + UDDRC_PORT_SIZE * 5;
 pub const UDDRC_SARBASE0: usize = 0xF04;
 /* SAR Size Register 0 */
 pub const UDDRC_SARSIZE0: usize = 0xF08;
+/* Scrubber Control Register */
+pub const UDDRC_SBRCTL: usize = 0xf24;
+/* Scrubber Status Register */
+pub const UDDRC_SBRSTAT: usize = 0xf28;
+/* Scrubber Write Data Pattern 0 */
+pub const UDDRC_SBRWDATA0: usize = 0xf2c;
+/* Scrubber Write Data Pattern 1 */
+pub const UDDRC_SBRWDATA1: usize = 0xf30;
+/* Scrubber Start Address Mask Register 0 */
+pub const UDDRC_SBRSTART0: usize = 0xf38;
+/* Scrubber Start Address Mask Register 1 */
+pub const UDDRC_SBRSTART1: usize = 0xf3c;
+/* Scrubber Address Range Mask Register 0 */
+pub const UDDRC_SBRRANGE0: usize = 0xf40;
+/* Scrubber Address Range Mask Register 1 */
+pub const UDDRC_SBRRANGE1: usize = 0xf44;
 
 /* UMCTL2 MP register helpers */
 /* { */
@@ -1866,6 +1882,146 @@ pub const fn UDDRC_PCFGWQOS1_5_WQOS_MAP_TIMEOUT(value: u32) -> u32 {
     UDDRC_PCFGWQOS1_5_WQOS_MAP_TIMEOUT_MSK & ((value) << UDDRC_PCFGWQOS1_5_WQOS_MAP_TIMEOUT_POS)
 }
 
+/* -------- UDDRC_SBRCTL : (UDDRC_REGS Offset: 0xf24) Scrubber Control Register-------- */
+/* (UDDRC_SBRCTL) Enables ECC scrubber.
+(Enabled)Enables the scrubber to generate background read commands after the memories are initialized.
+(Disabled)Disables the scrubber, resets the address generator to 0 and clears the scrubber status.
+This bitfield must be accessed separately from the other bitfields in this register.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_SBRCTL_SCRUB_EN_SCRUBDIS: u32 = 0;
+pub const UDDRC_SBRCTL_SCRUB_EN_SCRUBEN: u32 = 1;
+pub const UDDRC_SBRCTL_SCRUB_EN: u32 = 0x1u32 << 0;
+
+/* (UDDRC_SBRCTL) Continue scrubbing during low power.
+If enabled, burst of scrubs is issued in hardware controlled low power modes. There are two such modes: automatically initiated by idleness or initiated by Hardware low power interface.
+If disabled, the scrubber does not attempt to send commands while the DDRC is in HW controlled low power modes. In this case, the scrubber remembers the last address issued and automatically continues from there when the DDRC exits the low power mode.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_SBRCTL_SCRUB_DURING_LOWPOWER_SCRUBDURINGLPDIS: u32 = 0;
+pub const UDDRC_SBRCTL_SCRUB_DURING_LOWPOWER_SCRUBDURINGLPEN: u32 = 1;
+pub const UDDRC_SBRCTL_SCRUB_DURING_LOWPOWER: u32 = 0x1u32 << 1;
+
+/* (UDDRC_SBRCTL) Sets scrub_mode.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_SBRCTL_SCRUB_MODE_SCRUBMODE0: u32 = 0;
+pub const UDDRC_SBRCTL_SCRUB_MODE_SCRUBMODE1: u32 = 1;
+pub const UDDRC_SBRCTL_SCRUB_MODE: u32 = 0x1u32 << 2;
+
+/* (UDDRC_SBRCTL) Scrub burst count.
+Determines the number of back-to-back scrub read commands that can be issued together when the controller is in one of the HW controlled low power modes with Sideband ECC, both normal operation mode and low-power mode with Inline ECC.
+During these modes, the period of the scrub burst becomes "scrub_burst*scrub_interval" cycles.
+During normal operation mode of the controller with Sideband ECC (not in power-down or self-refresh), scrub_burst is ignored and only one scrub command is generated.
+Valid values are (Sideband ECC): 1: 1 read, 2: 4 reads, 3: 16 reads, 4: 64 reads, 5: 256 reads, 6: 1024 reads. (Inline ECC): 1: 8 reads, 2: 16 reads, 3: 32 reads.
+New programmed value takes effect only after scrubber is disabled by programming scrub_en to 0.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_SBRCTL_SCRUB_BURST_POS: u32 = 4;
+pub const UDDRC_SBRCTL_SCRUB_BURST_MSK: u32 = 0x7u32 << UDDRC_SBRCTL_SCRUB_BURST_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_SBRCTL_SCRUB_BURST(value: u32) -> u32 {
+    UDDRC_SBRCTL_SCRUB_BURST_MSK & ((value) << UDDRC_SBRCTL_SCRUB_BURST_POS)
+}
+
+/* (UDDRC_SBRCTL) Scrub interval.
+(512 x scrub_interval) number of clock cycles between two scrub read commands.
+If set to 0, scrub commands are issued back-to-back.
+This mode of operation (scrub_interval=0) can typically be used for scrubbing the full range of memory at once before or after SW controlled low power operations.
+After completing the full range of scrub while scrub_interval=0, scrub_done register is set and sbr_done_intr interrupt signal is asserted.
+This mode can not be used with Inline ECC: If MEMC_INLINE_ECC is 1 and scrub_interval is programme to 0, then RMW logic inside scrubber is disabled. New programmed value takes effect only after scrubber is disabled by programming scrub_en to 0.
+Unit: Multiples of 512 sbr_clk cycles.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_SBRCTL_SCRUB_INTERVAL_POS: u32 = 8;
+pub const UDDRC_SBRCTL_SCRUB_INTERVAL_MSK: u32 = 0x1fffu32 << UDDRC_SBRCTL_SCRUB_INTERVAL_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_SBRCTL_SCRUB_INTERVAL(value: u32) -> u32 {
+    UDDRC_SBRCTL_SCRUB_INTERVAL_MSK & ((value) << UDDRC_SBRCTL_SCRUB_INTERVAL_POS)
+}
+
+/* -------- UDDRC_SBRSTAT : (UDDRC_REGS Offset: 0xf28) Scrubber Status Register-------- */
+/* (UDDRC_SBRSTAT) Scrubber busy.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_SBRSTAT_SCRUB_BUSY_SCRUBBUSY0: u32 = 0;
+pub const UDDRC_SBRSTAT_SCRUB_BUSY_SCRUBBUSY1: u32 = 1;
+pub const UDDRC_SBRSTAT_SCRUB_BUSY: u32 = 0x1u32 << 0;
+
+/* (UDDRC_SBRSTAT) Scrubber done.
+The controller sets this bit to 1, after full range of addresses are scrubbed once while scrub_interval is set to 0.
+Cleared if scrub_en is set to 0 (scrubber disabled) or scrub_interval is set to a non-zero value for normal scrub operation.
+The interrupt signal, sbr_done_intr, is equivalent to this status bitfield.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_SBRSTAT_SCRUB_DONE_SCRUBDONE0: u32 = 0;
+pub const UDDRC_SBRSTAT_SCRUB_DONE_SCRUBDONE1: u32 = 1;
+pub const UDDRC_SBRSTAT_SCRUB_DONE: u32 = 0x1u32 << 1;
+
+/* -------- UDDRC_SBRWDATA0 : (UDDRC_REGS Offset: 0xf2c) Scrubber Write Data Pattern 0-------- */
+/* (UDDRC_SBRWDATA0) ECC Scrubber write data pattern for data bus[31:0]
+Programming Mode: Dynamic
+*/
+pub const UDDRC_SBRWDATA0_SCRUB_PATTERN0_POS: u32 = 0;
+pub const UDDRC_SBRWDATA0_SCRUB_PATTERN0_MSK: u32 =
+    0xffffffffu32 << UDDRC_SBRWDATA0_SCRUB_PATTERN0_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_SBRWDATA0_SCRUB_PATTERN0(value: u32) -> u32 {
+    UDDRC_SBRWDATA0_SCRUB_PATTERN0_MSK & ((value) << UDDRC_SBRWDATA0_SCRUB_PATTERN0_POS)
+}
+
+/* -------- UDDRC_SBRSTART0 : (UDDRC_REGS Offset: 0xf38) Scrubber Start Address Mask Register 0-------- */
+/* (UDDRC_SBRSTART0) sbr_address_start_mask_0 holds the bits [31:0] of the starting address the ECC scrubber generates. The register must be programmed as explained in Address Configuration in ECC Scrub and Scrubber. The scrubber address registers are changed only when the scrubber is disabled (SBRCTL.scrub_en = 0) and there are no scrubber commands in progress (SBRSTAT.scrub_busy = 0). It is HIF address.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_SBRSTART0_SBR_ADDRESS_START_MASK_0_POS: u32 = 0;
+pub const UDDRC_SBRSTART0_SBR_ADDRESS_START_MASK_0_MSK: u32 =
+    0xffffffffu32 << UDDRC_SBRSTART0_SBR_ADDRESS_START_MASK_0_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_SBRSTART0_SBR_ADDRESS_START_MASK_0(value: u32) -> u32 {
+    UDDRC_SBRSTART0_SBR_ADDRESS_START_MASK_0_MSK
+        & ((value) << UDDRC_SBRSTART0_SBR_ADDRESS_START_MASK_0_POS)
+}
+
+/* -------- UDDRC_SBRSTART1 : (UDDRC_REGS Offset: 0xf3c) Scrubber Start Address Mask Register 1-------- */
+/* (UDDRC_SBRSTART1) sbr_address_start_mask_1 holds bits [MEMC_HIF_ADDR_WIDTH_MAX-1:32] of the starting address the ECC scrubber generates. The register must be programmed as explained in Address Configuration in ECC Scrub and Scrubber. The scrubber address registers are changed only when the scrubber is disabled (SBRCTL.scrub_en = 0) and there are no scrubber commands in progress (SBRSTAT.scrub_busy = 0). It is HIF address.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_SBRSTART1_SBR_ADDRESS_START_MASK_1_POS: u32 = 0;
+pub const UDDRC_SBRSTART1_SBR_ADDRESS_START_MASK_1_MSK: u32 =
+    0xfu32 << UDDRC_SBRSTART1_SBR_ADDRESS_START_MASK_1_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_SBRSTART1_SBR_ADDRESS_START_MASK_1(value: u32) -> u32 {
+    UDDRC_SBRSTART1_SBR_ADDRESS_START_MASK_1_MSK
+        & ((value) << UDDRC_SBRSTART1_SBR_ADDRESS_START_MASK_1_POS)
+}
+
+/* -------- UDDRC_SBRRANGE0 : (UDDRC_REGS Offset: 0xf40) Scrubber Address Range Mask Register 0-------- */
+/* (UDDRC_SBRRANGE0) sbr_address_range_mask_0 holds the bits [31:0] of the scrubber address range mask. The scrubber address range mask limits the address range that the ECC scrubber can generate. The register must be programmed as explained in Address Configuration in ECC Scrub and Scrubber. The scrubber address registers are changed only when the scrubber is disabled (SBRCTL.scrub_en = 0) and there are no scrubber commands in progress (SBRSTAT.scrub_busy = 0). It is HIF address.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_SBRRANGE0_SBR_ADDRESS_RANGE_MASK_0_POS: u32 = 0;
+pub const UDDRC_SBRRANGE0_SBR_ADDRESS_RANGE_MASK_0_MSK: u32 =
+    0xffffffffu32 << UDDRC_SBRRANGE0_SBR_ADDRESS_RANGE_MASK_0_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_SBRRANGE0_SBR_ADDRESS_RANGE_MASK_0(value: u32) -> u32 {
+    UDDRC_SBRRANGE0_SBR_ADDRESS_RANGE_MASK_0_MSK
+        & ((value) << UDDRC_SBRRANGE0_SBR_ADDRESS_RANGE_MASK_0_POS)
+}
+
+/* -------- UDDRC_SBRRANGE1 : (UDDRC_REGS Offset: 0xf44) Scrubber Address Range Mask Register 1-------- */
+/* (UDDRC_SBRRANGE1) sbr_address_range_mask_1 holds the bits [MEMC_HIF_ADDR_WIDTH_MAX-1:32] of the scrubber address range mask. The scrubber address range mask limits the address range that the ECC scrubber can generate. The register must be programmed as explained in Address Configuration in ECC Scrub and Scrubber. The scrubber address registers are changed only when the scrubber is disabled (SBRCTL.scrub_en = 0) and there are no scrubber commands in progress (SBRSTAT.scrub_busy = 0). It is HIF address.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_SBRRANGE1_SBR_ADDRESS_RANGE_MASK_1_POS: u32 = 0;
+pub const UDDRC_SBRRANGE1_SBR_ADDRESS_RANGE_MASK_1_MSK: u32 =
+    0xfu32 << UDDRC_SBRRANGE1_SBR_ADDRESS_RANGE_MASK_1_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_SBRRANGE1_SBR_ADDRESS_RANGE_MASK_1(value: u32) -> u32 {
+    UDDRC_SBRRANGE1_SBR_ADDRESS_RANGE_MASK_1_MSK
+        & ((value) << UDDRC_SBRRANGE1_SBR_ADDRESS_RANGE_MASK_1_POS)
+}
+
 /* } */
 /* End of UMCTL2 MP register helpers */
 
@@ -1902,6 +2058,46 @@ pub const UDDRC_RFSHCTL3: usize = 0x60;
 pub const UDDRC_RFSHTMG: usize = 0x64;
 /* (UDDRC_REGS Offset: 0x68) Refresh Timing Register 1*/
 pub const UDDRC_RFSHTMG1: usize = 0x68;
+/* ECC Configuration Register 0 */
+pub const UDDRC_ECCCFG0: usize = 0x70;
+/* ECC Configuration Register 1 */
+pub const UDDRC_ECCCFG1: usize = 0x74;
+/* SECDED ECC Status Register (Valid only in MEMC_ECC_SUPPORT==1 (SECDED ECC mode)) */
+pub const UDDRC_ECCSTAT: usize = 0x78;
+/* ECC Clear Register */
+pub const UDDRC_ECCCTL: usize = 0x7c;
+/* ECC Error Counter Register */
+pub const UDDRC_ECCERRCNT: usize = 0x80;
+/* ECC Corrected Error Address Register 0 */
+pub const UDDRC_ECCCADDR0: usize = 0x84;
+/* ECC Corrected Error Address Register 1 */
+pub const UDDRC_ECCCADDR1: usize = 0x88;
+/* ECC Corrected Syndrome Register 0 */
+pub const UDDRC_ECCCSYN0: usize = 0x8c;
+/* ECC Corrected Syndrome Register 1 */
+pub const UDDRC_ECCCSYN1: usize = 0x90;
+/* ECC Corrected Syndrome Register 2 */
+pub const UDDRC_ECCCSYN2: usize = 0x94;
+/* ECC Corrected Data Bit Mask Register 0 */
+pub const UDDRC_ECCBITMASK0: usize = 0x98;
+/* ECC Corrected Data Bit Mask Register 1 */
+pub const UDDRC_ECCBITMASK1: usize = 0x9c;
+/* ECC Corrected Data Bit Mask Register 2 */
+pub const UDDRC_ECCBITMASK2: usize = 0xa0;
+/* ECC Uncorrected Error Address Register 0 */
+pub const UDDRC_ECCUADDR0: usize = 0xa4;
+/* ECC Uncorrected Error Address Register 1 */
+pub const UDDRC_ECCUADDR1: usize = 0xa8;
+/* ECC Uncorrected Syndrome Register 0 */
+pub const UDDRC_ECCUSYN0: usize = 0xac;
+/* ECC Uncorrected Syndrome Register 1 */
+pub const UDDRC_ECCUSYN1: usize = 0xb0;
+/* ECC Uncorrected Syndrome Register 2 */
+pub const UDDRC_ECCUSYN2: usize = 0xb4;
+/* ECC Data Poisoning Address Register 0. If a HIF write data beat matches the address specified in this register, an ECC error is introduced on that transaction (write/RMW), if ECCCFG1.data_poison_en=1. */
+pub const UDDRC_ECCPOISONADDR0: usize = 0xb8;
+/* ECC Data Poisoning Address Register 1. If a HIF write data beat matches the address specified in this register, an ECC error is introduced on that transaction (write/RMW), if ECCCFG1.data_poison_en=1. */
+pub const UDDRC_ECCPOISONADDR1: usize = 0xbc;
 /* (UDDRC_REGS Offset: 0xC0) CRC Parity Control Register0 */
 pub const UDDRC_CRCPARCTL0: usize = 0xC0;
 /* (UDDRC_REGS Offset: 0xC4) CRC Parity Control Register1 */
@@ -1994,7 +2190,7 @@ pub const UDDRC_DFISTAT: usize = 0x1BC;
 pub const UDDRC_DBICTL: usize = 0x1C0;
 /* (UDDRC_REGS Offset: 0x1C4) DFI PHY Master */
 pub const UDDRC_DFIPHYMSTR: usize = 0x1C4;
-/* (UDDRC_REGS Offset: 0x200) Address Map Register 1 */
+/* (UDDRC_REGS Offset: 0x200) Address Map Register 0 */
 pub const UDDRC_ADDRMAP0: usize = 0x200;
 /* (UDDRC_REGS Offset: 0x204) Address Map Register 1 */
 pub const UDDRC_ADDRMAP1: usize = 0x204;
@@ -2727,6 +2923,551 @@ pub const UDDRC_RFSHTMG1_T_PBR2PBR_MSK: u32 = 0xffu32 << UDDRC_RFSHTMG1_T_PBR2PB
 #[allow(non_snake_case)]
 pub const fn UDDRC_RFSHTMG1_T_PBR2PBR(value: u32) -> u32 {
     UDDRC_RFSHTMG1_T_PBR2PBR_MSK & ((value) << UDDRC_RFSHTMG1_T_PBR2PBR_POS)
+}
+
+/* -------- UDDRC_ECCCFG0 : (UDDRC_REGS Offset: 0x70) ECC Configuration Register 0-------- */
+/* (UDDRC_ECCCFG0) ECC mode indicator.
+Everything not described in "Values" section is reserved.
+Programming Mode: Static
+*/
+pub const UDDRC_ECCCFG0_ECC_MODE_ADVECC: u32 = 5;
+pub const UDDRC_ECCCFG0_ECC_MODE_ECCDISABLED: u32 = 0;
+pub const UDDRC_ECCCFG0_ECC_MODE_ECCENABLED: u32 = 4;
+pub const UDDRC_ECCCFG0_ECC_MODE_POS: u32 = 0;
+pub const UDDRC_ECCCFG0_ECC_MODE_MSK: u32 = 0x7u32 << UDDRC_ECCCFG0_ECC_MODE_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCCFG0_ECC_MODE(value: u32) -> u32 {
+    UDDRC_ECCCFG0_ECC_MODE_MSK & ((value) << UDDRC_ECCCFG0_ECC_MODE_POS)
+}
+
+/* (UDDRC_ECCCFG0) Disables ECC scrubs.
+Valid only when ECCCFG0.ecc_mode = 3'b100 or 3'b101 and MEMC_USE_RMW is defined.
+Note: Scrub is not supported in inline ECC mode and the register value is don't care.
+
+Programming Mode: Static
+*/
+pub const UDDRC_ECCCFG0_DIS_SCRUB_DISSCRUB0: u32 = 0;
+pub const UDDRC_ECCCFG0_DIS_SCRUB_DISSCRUB1: u32 = 1;
+pub const UDDRC_ECCCFG0_DIS_SCRUB: u32 = 0x1u32 << 4;
+
+/* (UDDRC_ECCCFG0) Enables remapping ECC region feature.
+Only supported when inline ECC is enabled.
+Programming Mode: Static
+*/
+pub const UDDRC_ECCCFG0_ECC_REGION_REMAP_EN_ECCREGIONREMAPDIS: u32 = 0;
+pub const UDDRC_ECCCFG0_ECC_REGION_REMAP_EN_ECCREGIONREMAPEN: u32 = 1;
+pub const UDDRC_ECCCFG0_ECC_REGION_REMAP_EN: u32 = 0x1u32 << 7;
+
+/* (UDDRC_ECCCFG0) Selectable Protected Region setting.
+Memory space is divided to 8/16/32/64 regions which is determined by ECCCFG0.ecc_region_map_granu.
+Note: Highest 1/8 memory space is always ECC region.
+Lowest 7 regions are Selectable Protected Regions. The Selectable Protected Regions can be protected/non-protected selectively by ECCCFG0.ecc_region_map[6:0]. Other upper regions are non-protected region if any. Each bit of ECCCFG0.ecc_region_map[6:0] correspond to each of lowest 7 regions respectively.
+In order to protect a region with ECC, set the corresponding bit to 1, otherwise set to 0. All "0"s is invalid - there must be at least one protected region if inline ECC is enabled through ECCCFG0.ecc_mode register.
+All regions are protected with the following setting.
+ - ecc_region_map=7'b1111111
+ - ecc_region_map_granu=0
+Only first 1/64 region is protected with the following setting.
+ - ecc_region_map=7'b0000001
+ - ecc_region_map_granu=3
+
+Programming Mode: Quasi-dynamic Group 3
+*/
+pub const UDDRC_ECCCFG0_ECC_REGION_MAP_POS: u32 = 8;
+pub const UDDRC_ECCCFG0_ECC_REGION_MAP_MSK: u32 = 0x7fu32 << UDDRC_ECCCFG0_ECC_REGION_MAP_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCCFG0_ECC_REGION_MAP(value: u32) -> u32 {
+    UDDRC_ECCCFG0_ECC_REGION_MAP_MSK & ((value) << UDDRC_ECCCFG0_ECC_REGION_MAP_POS)
+}
+
+/* (UDDRC_ECCCFG0) Indicates the number of cycles on HIF interface with no access to protected regions which causes flush of all the block channels.
+In order to flush block channel, uMCTL2 injects write ECC command (when there is no incoming HIF command) if there is any write in the block and then stop tracking the block address.
+ - 0 - Indicates no timeout (feature is disabled, not supported with this version)
+ - 1 - Indicates 32 cycles
+ - 2 - Indicates 2*32 cycles, and so on
+ Unit: Multiples of 32 DFI clock cycles.
+For more information on how to program this register field, see "Note 1" in the "Notes on Timing Registers" section.
+Programming Mode: Quasi-dynamic Group 3
+*/
+pub const UDDRC_ECCCFG0_BLK_CHANNEL_IDLE_TIME_X32_POS: u32 = 16;
+pub const UDDRC_ECCCFG0_BLK_CHANNEL_IDLE_TIME_X32_MSK: u32 =
+    0x3fu32 << UDDRC_ECCCFG0_BLK_CHANNEL_IDLE_TIME_X32_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCCFG0_BLK_CHANNEL_IDLE_TIME_X32(value: u32) -> u32 {
+    UDDRC_ECCCFG0_BLK_CHANNEL_IDLE_TIME_X32_MSK
+        & ((value) << UDDRC_ECCCFG0_BLK_CHANNEL_IDLE_TIME_X32_POS)
+}
+
+/* (UDDRC_ECCCFG0) When ECCCFG0.ecc_region_map_granu>0, there is a region which is not controlled by ecc_region_map.
+This register defines the region to be protected or non-protected for Inline ECC.
+
+  This register is valid only when ECCCFG0.ecc_region_map_granu>0 && ECCCFG0.ecc_mode=4.
+
+Programming Mode: Static
+*/
+pub const UDDRC_ECCCFG0_ECC_REGION_MAP_OTHER_NONPROTECTED: u32 = 0;
+pub const UDDRC_ECCCFG0_ECC_REGION_MAP_OTHER_PROTECTED: u32 = 1;
+pub const UDDRC_ECCCFG0_ECC_REGION_MAP_OTHER: u32 = 0x1u32 << 29;
+
+/* (UDDRC_ECCCFG0) Indicates granularity of selectable protected region.
+Define one region size for ECCCFG0.ecc_region_map.
+Programming Mode: Static
+*/
+pub const UDDRC_ECCCFG0_ECC_REGION_MAP_GRANU_DIV16OFMEMORY: u32 = 1;
+pub const UDDRC_ECCCFG0_ECC_REGION_MAP_GRANU_DIV32OFMEMORY: u32 = 0;
+pub const UDDRC_ECCCFG0_ECC_REGION_MAP_GRANU_DIV64OFMEMORY: u32 = 1;
+pub const UDDRC_ECCCFG0_ECC_REGION_MAP_GRANU_DIV8OFMEMORY: u32 = 0;
+pub const UDDRC_ECCCFG0_ECC_REGION_MAP_GRANU_POS: u32 = 30;
+pub const UDDRC_ECCCFG0_ECC_REGION_MAP_GRANU_MSK: u32 =
+    0x3u32 << UDDRC_ECCCFG0_ECC_REGION_MAP_GRANU_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCCFG0_ECC_REGION_MAP_GRANU(value: u32) -> u32 {
+    UDDRC_ECCCFG0_ECC_REGION_MAP_GRANU_MSK & ((value) << UDDRC_ECCCFG0_ECC_REGION_MAP_GRANU_POS)
+}
+
+/* -------- UDDRC_ECCCFG1 : (UDDRC_REGS Offset: 0x74) ECC Configuration Register 1-------- */
+/* (UDDRC_ECCCFG1) Enables ECC data poisoning - introduces ECC errors on writes to address specified by the ECCPOISONADDR0/1 registers.
+This field must be set to 0 if ECC is disabled (ECCCFG0.ecc_mode = 0).
+Programming Mode: Quasi-dynamic Group 3
+*/
+pub const UDDRC_ECCCFG1_DATA_POISON_EN_DATAPOISONDIS: u32 = 0;
+pub const UDDRC_ECCCFG1_DATA_POISON_EN_DATAPOISONEN: u32 = 1;
+pub const UDDRC_ECCCFG1_DATA_POISON_EN: u32 = 0x1u32 << 0;
+
+/* (UDDRC_ECCCFG1) Selects whether to poison 1 or 2 bits.
+  Valid only when MEMC_ECC_SUPPORT==1 (SECDED ECC mode)
+Programming Mode: Quasi-dynamic Group 3
+*/
+pub const UDDRC_ECCCFG1_DATA_POISON_BIT_DATAPOISONBIT0: u32 = 0;
+pub const UDDRC_ECCCFG1_DATA_POISON_BIT_DATAPOISONBIT1: u32 = 1;
+pub const UDDRC_ECCCFG1_DATA_POISON_BIT: u32 = 0x1u32 << 1;
+
+/* (UDDRC_ECCCFG1) Locks the parity section of the ECC region (hole) which is the highest system address part of the memory that stores ECC parity for protected region.
+Programming Mode: Quasi-dynamic Group 3
+*/
+pub const UDDRC_ECCCFG1_ECC_REGION_PARITY_LOCK_LOCKED: u32 = 1;
+pub const UDDRC_ECCCFG1_ECC_REGION_PARITY_LOCK_UNLOCKED: u32 = 0;
+pub const UDDRC_ECCCFG1_ECC_REGION_PARITY_LOCK: u32 = 0x1u32 << 4;
+
+/* (UDDRC_ECCCFG1) Locks the remaining waste parts of the ECC region (hole) that are not locked by ecc_region_parity_lock.
+Programming Mode: Quasi-dynamic Group 3
+*/
+pub const UDDRC_ECCCFG1_ECC_REGION_WASTE_LOCK_LOCKED: u32 = 1;
+pub const UDDRC_ECCCFG1_ECC_REGION_WASTE_LOCK_UNLOCKED: u32 = 0;
+pub const UDDRC_ECCCFG1_ECC_REGION_WASTE_LOCK: u32 = 0x1u32 << 5;
+
+/* (UDDRC_ECCCFG1) If enabled, block channel is terminated when full block write or full block read is performed (all address within block are written or read).
+  This is debug register, and this must be set to 1 for normal operation.
+Programming Mode: Static
+*/
+pub const UDDRC_ECCCFG1_BLK_CHANNEL_ACTIVE_TERM_CHNTERMDIS: u32 = 0;
+pub const UDDRC_ECCCFG1_BLK_CHANNEL_ACTIVE_TERM_CHNTERMEN: u32 = 1;
+pub const UDDRC_ECCCFG1_BLK_CHANNEL_ACTIVE_TERM: u32 = 0x1u32 << 7;
+
+/* (UDDRC_ECCCFG1) Indicated the number of active block channels.
+Total number of ECC block channels are defined by MEMC_NO_OF_BLK_CHANNEL hardware parameter.
+This register can limit the number of available channels.
+For example, if set to 0, only one channel is active and therefore block interleaving is disabled.
+The valid range is from 0 to MEMC_NO_OF_BLK_CHANNEL-1.
+
+Programming Mode: Quasi-dynamic Group 3
+*/
+pub const UDDRC_ECCCFG1_ACTIVE_BLK_CHANNEL_POS: u32 = 8;
+pub const UDDRC_ECCCFG1_ACTIVE_BLK_CHANNEL_MSK: u32 =
+    0x1fu32 << UDDRC_ECCCFG1_ACTIVE_BLK_CHANNEL_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCCFG1_ACTIVE_BLK_CHANNEL(value: u32) -> u32 {
+    UDDRC_ECCCFG1_ACTIVE_BLK_CHANNEL_MSK & ((value) << UDDRC_ECCCFG1_ACTIVE_BLK_CHANNEL_POS)
+}
+
+/* -------- UDDRC_ECCSTAT : (UDDRC_REGS Offset: 0x78) SECDED ECC Status Register (Valid only in MEMC_ECC_SUPPORT==1 (SECDED ECC mode))-------- */
+/* (UDDRC_ECCSTAT) Indicates the bit number corrected by single-bit ECC error.
+For encoding of this field, see ECC section in the Architecture chapter.
+If more than one data lane has an error, the lower data lane is selected.
+This register is 7 bits wide in order to handle 72 bits of the data present in a single lane.
+Programming Mode: Static
+*/
+pub const UDDRC_ECCSTAT_ECC_CORRECTED_BIT_NUM_POS: u32 = 0;
+pub const UDDRC_ECCSTAT_ECC_CORRECTED_BIT_NUM_MSK: u32 =
+    0x7fu32 << UDDRC_ECCSTAT_ECC_CORRECTED_BIT_NUM_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCSTAT_ECC_CORRECTED_BIT_NUM(value: u32) -> u32 {
+    UDDRC_ECCSTAT_ECC_CORRECTED_BIT_NUM_MSK & ((value) << UDDRC_ECCSTAT_ECC_CORRECTED_BIT_NUM_POS)
+}
+
+/* (UDDRC_ECCSTAT) Single-bit error indicator.
+In sideband ECC mode, 1 bit per ECC lane. When the controller is operating in 1:1 frequency ratio mode, there are only two lanes, so only the lower two bits are used.
+In inline ECC mode, the register is always 1 bit to indicate correctable error on any lane.
+Programming Mode: Static
+*/
+pub const UDDRC_ECCSTAT_ECC_CORRECTED_ERR: u32 = 0x1u32 << 8;
+
+/* (UDDRC_ECCSTAT) Double-bit error indicator.
+In sideband ECC mode, 1 bit per ECC lane. When the controller is operating in 1:1 frequency ratio mode, there are only two lanes, so only the lower two bits are used.
+In inline ECC mode, the register is always 1 bit to indicate uncorrectable error on any lane.
+Programming Mode: Static
+*/
+pub const UDDRC_ECCSTAT_ECC_UNCORRECTED_ERR: u32 = 0x1u32 << 16;
+
+/* -------- UDDRC_ECCCTL : (UDDRC_REGS Offset: 0x7c) ECC Clear Register-------- */
+/* (UDDRC_ECCCTL) Setting this register bit to 1 clears the currently stored corrected ECC error. uMCTL2 automatically clears this bit.
+The following registers are cleared:
+ - ECCSTAT.ecc_corrected_err
+ - ADVECCSTAT.advecc_corrected_err
+ - ADVECCSTAT.advecc_num_err_symbol
+ - ADVECCSTAT.advecc_err_symbol_pos
+ - ADVECCSTAT.advecc_err_symbol_bits
+ - ECCCSYN0
+ - ECCCSYN1
+ - ECCCSYN2
+ - ECCBITMASK0
+ - ECCBITMASK1
+ - ECCBITMASK2
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCCTL_ECC_CORRECTED_ERR_CLR_CORRECCERRCLR0: u32 = 0;
+pub const UDDRC_ECCCTL_ECC_CORRECTED_ERR_CLR_CORRECCERRCLR1: u32 = 1;
+pub const UDDRC_ECCCTL_ECC_CORRECTED_ERR_CLR: u32 = 0x1u32 << 0;
+
+/* (UDDRC_ECCCTL) Setting this register bit to 1 clears the currently stored uncorrected ECC error. uMCTL2 automatically clears this bit.
+The following registers are cleared:
+ - ECCSTAT.ecc_uncorrected_err
+ - ADVECCSTAT.advecc_uncorrected_err
+ - ECCUSYN0
+ - ECCUSYN1
+ - ECCUSYN2
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCCTL_ECC_UNCORRECTED_ERR_CLR_UNCORRECCERRCLR0: u32 = 0;
+pub const UDDRC_ECCCTL_ECC_UNCORRECTED_ERR_CLR_UNCORRECCERRCLR1: u32 = 1;
+pub const UDDRC_ECCCTL_ECC_UNCORRECTED_ERR_CLR: u32 = 0x1u32 << 1;
+
+/* (UDDRC_ECCCTL) Clears the currently stored corrected ECC error count. The uMCTL2 automatically clears this bit.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCCTL_ECC_CORR_ERR_CNT_CLR_ERRCNTCLR0: u32 = 0;
+pub const UDDRC_ECCCTL_ECC_CORR_ERR_CNT_CLR_ERRCNTCLR1: u32 = 1;
+pub const UDDRC_ECCCTL_ECC_CORR_ERR_CNT_CLR: u32 = 0x1u32 << 2;
+
+/* (UDDRC_ECCCTL) Clears currently stored uncorrected ECC error count. The uMCTL2 automatically clears this bit.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCCTL_ECC_UNCORR_ERR_CNT_CLR_ERRCNTCLR0: u32 = 0;
+pub const UDDRC_ECCCTL_ECC_UNCORR_ERR_CNT_CLR_ERRCNTCLR1: u32 = 1;
+pub const UDDRC_ECCCTL_ECC_UNCORR_ERR_CNT_CLR: u32 = 0x1u32 << 3;
+
+/* (UDDRC_ECCCTL) Interrupt enable bit for ecc_corrected_err_intr.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCCTL_ECC_CORRECTED_ERR_INTR_EN_INTRDIS: u32 = 0;
+pub const UDDRC_ECCCTL_ECC_CORRECTED_ERR_INTR_EN_INTREN: u32 = 1;
+pub const UDDRC_ECCCTL_ECC_CORRECTED_ERR_INTR_EN: u32 = 0x1u32 << 8;
+
+/* (UDDRC_ECCCTL) Interrupt enable bit for ecc_uncorrected_err_intr.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCCTL_ECC_UNCORRECTED_ERR_INTR_EN_INTRDIS: u32 = 0;
+pub const UDDRC_ECCCTL_ECC_UNCORRECTED_ERR_INTR_EN_INTREN: u32 = 1;
+pub const UDDRC_ECCCTL_ECC_UNCORRECTED_ERR_INTR_EN: u32 = 0x1u32 << 9;
+
+/* (UDDRC_ECCCTL) Interrupt force bit for ecc_corrected_err_intr.
+There is no interaction between functionally triggering an interrupt and forcing an interrupt (they are mutually exclusive).
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCCTL_ECC_CORRECTED_ERR_INTR_FORCE_INTRFORCE0: u32 = 0;
+pub const UDDRC_ECCCTL_ECC_CORRECTED_ERR_INTR_FORCE_INTRFORCE1: u32 = 1;
+pub const UDDRC_ECCCTL_ECC_CORRECTED_ERR_INTR_FORCE: u32 = 0x1u32 << 16;
+
+/* (UDDRC_ECCCTL) Interrupt force bit for ecc_uncorrected_err_intr.
+There is no interaction between functionally triggering an interrupt and forcing an interrupt (they are mutually exclusive).
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCCTL_ECC_UNCORRECTED_ERR_INTR_FORCE_INTRFORCE0: u32 = 0;
+pub const UDDRC_ECCCTL_ECC_UNCORRECTED_ERR_INTR_FORCE_INTRFORCE1: u32 = 1;
+pub const UDDRC_ECCCTL_ECC_UNCORRECTED_ERR_INTR_FORCE: u32 = 0x1u32 << 17;
+
+/* -------- UDDRC_ECCERRCNT : (UDDRC_REGS Offset: 0x80) ECC Error Counter Register-------- */
+/* (UDDRC_ECCERRCNT) Indicates the number of correctable ECC errors detected.
+Note that the saturation behavior of this register is different, depending on the type of ECC.
+For advanced ECC or Inline ECC, it saturates at 0xFFFF, while for Side-band ECC with SECDED ECC, it saturates at 0xFFFC or above.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCERRCNT_ECC_CORR_ERR_CNT_POS: u32 = 0;
+pub const UDDRC_ECCERRCNT_ECC_CORR_ERR_CNT_MSK: u32 =
+    0xffffu32 << UDDRC_ECCERRCNT_ECC_CORR_ERR_CNT_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCERRCNT_ECC_CORR_ERR_CNT(value: u32) -> u32 {
+    UDDRC_ECCERRCNT_ECC_CORR_ERR_CNT_MSK & ((value) << UDDRC_ECCERRCNT_ECC_CORR_ERR_CNT_POS)
+}
+
+/* (UDDRC_ECCERRCNT) Indicates the number of uncorrectable ECC errors detected.
+Note that the saturation behavior of this register is different, depending on the type of ECC.
+For advanced ECC or Inline ECC, it saturates at 0xFFFF, while for Side-band ECC with SECDED ECC, it saturates at 0xFFFC or above.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCERRCNT_ECC_UNCORR_ERR_CNT_POS: u32 = 16;
+pub const UDDRC_ECCERRCNT_ECC_UNCORR_ERR_CNT_MSK: u32 =
+    0xffffu32 << UDDRC_ECCERRCNT_ECC_UNCORR_ERR_CNT_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCERRCNT_ECC_UNCORR_ERR_CNT(value: u32) -> u32 {
+    UDDRC_ECCERRCNT_ECC_UNCORR_ERR_CNT_MSK & ((value) << UDDRC_ECCERRCNT_ECC_UNCORR_ERR_CNT_POS)
+}
+
+/* -------- UDDRC_ECCCADDR0 : (UDDRC_REGS Offset: 0x84) ECC Corrected Error Address Register 0-------- */
+/* (UDDRC_ECCCADDR0) Indicates the page/row number of a read resulting in a corrected ECC error.
+This is 18-bits wide in configurations with DDR4 support and 16-bits in all other configurations.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCCADDR0_ECC_CORR_ROW_POS: u32 = 0;
+pub const UDDRC_ECCCADDR0_ECC_CORR_ROW_MSK: u32 = 0x3ffffu32 << UDDRC_ECCCADDR0_ECC_CORR_ROW_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCCADDR0_ECC_CORR_ROW(value: u32) -> u32 {
+    UDDRC_ECCCADDR0_ECC_CORR_ROW_MSK & ((value) << UDDRC_ECCCADDR0_ECC_CORR_ROW_POS)
+}
+
+/* -------- UDDRC_ECCCADDR1 : (UDDRC_REGS Offset: 0x88) ECC Corrected Error Address Register 1-------- */
+/* (UDDRC_ECCCADDR1) Indicates the block number of a read resulting in a corrected ECC error (lowest bit not assigned here).
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCCADDR1_ECC_CORR_COL_POS: u32 = 0;
+pub const UDDRC_ECCCADDR1_ECC_CORR_COL_MSK: u32 = 0xfffu32 << UDDRC_ECCCADDR1_ECC_CORR_COL_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCCADDR1_ECC_CORR_COL(value: u32) -> u32 {
+    UDDRC_ECCCADDR1_ECC_CORR_COL_MSK & ((value) << UDDRC_ECCCADDR1_ECC_CORR_COL_POS)
+}
+
+/* (UDDRC_ECCCADDR1) Indicates the bank number of a read resulting in a corrected ECC error.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCCADDR1_ECC_CORR_BANK_POS: u32 = 16;
+pub const UDDRC_ECCCADDR1_ECC_CORR_BANK_MSK: u32 = 0x7u32 << UDDRC_ECCCADDR1_ECC_CORR_BANK_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCCADDR1_ECC_CORR_BANK(value: u32) -> u32 {
+    UDDRC_ECCCADDR1_ECC_CORR_BANK_MSK & ((value) << UDDRC_ECCCADDR1_ECC_CORR_BANK_POS)
+}
+
+/* -------- UDDRC_ECCCSYN0 : (UDDRC_REGS Offset: 0x8c) ECC Corrected Syndrome Register 0-------- */
+/* (UDDRC_ECCCSYN0) Indicates the data pattern that resulted in a corrected error.
+For 16-bit ECC, only bits [15:0] are used.
+This field can be masked by setting the dis_regs_ecc_syndrome input to value 1.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCCSYN0_ECC_CORR_SYNDROMES_31_0_POS: u32 = 0;
+pub const UDDRC_ECCCSYN0_ECC_CORR_SYNDROMES_31_0_MSK: u32 =
+    0xffffffffu32 << UDDRC_ECCCSYN0_ECC_CORR_SYNDROMES_31_0_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCCSYN0_ECC_CORR_SYNDROMES_31_0(value: u32) -> u32 {
+    UDDRC_ECCCSYN0_ECC_CORR_SYNDROMES_31_0_MSK
+        & ((value) << UDDRC_ECCCSYN0_ECC_CORR_SYNDROMES_31_0_POS)
+}
+
+/* -------- UDDRC_ECCCSYN1 : (UDDRC_REGS Offset: 0x90) ECC Corrected Syndrome Register 1-------- */
+/* (UDDRC_ECCCSYN1) Indicates the data pattern that resulted in a corrected error.
+For 32-bit ECC and 16-bit ECC, this register is not used.
+This field can be masked by setting the dis_regs_ecc_syndrome input to value 1.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCCSYN1_ECC_CORR_SYNDROMES_63_32_POS: u32 = 0;
+pub const UDDRC_ECCCSYN1_ECC_CORR_SYNDROMES_63_32_MSK: u32 =
+    0xffffffffu32 << UDDRC_ECCCSYN1_ECC_CORR_SYNDROMES_63_32_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCCSYN1_ECC_CORR_SYNDROMES_63_32(value: u32) -> u32 {
+    UDDRC_ECCCSYN1_ECC_CORR_SYNDROMES_63_32_MSK
+        & ((value) << UDDRC_ECCCSYN1_ECC_CORR_SYNDROMES_63_32_POS)
+}
+
+/* -------- UDDRC_ECCCSYN2 : (UDDRC_REGS Offset: 0x94) ECC Corrected Syndrome Register 2-------- */
+/* (UDDRC_ECCCSYN2) Indicates the data pattern that resulted in a corrected error one for each ECC lane, all concatenated together.
+This register refers to the ECC byte, which is bits [71:64] for 64-bit ECC, [39:32] for 32-bit ECC, or [23:16] for 16-bit ECC.
+This field can be masked by setting the dis_regs_ecc_syndrome input to value 1.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCCSYN2_ECC_CORR_SYNDROMES_71_64_POS: u32 = 0;
+pub const UDDRC_ECCCSYN2_ECC_CORR_SYNDROMES_71_64_MSK: u32 =
+    0xffu32 << UDDRC_ECCCSYN2_ECC_CORR_SYNDROMES_71_64_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCCSYN2_ECC_CORR_SYNDROMES_71_64(value: u32) -> u32 {
+    UDDRC_ECCCSYN2_ECC_CORR_SYNDROMES_71_64_MSK
+        & ((value) << UDDRC_ECCCSYN2_ECC_CORR_SYNDROMES_71_64_POS)
+}
+
+/* -------- UDDRC_ECCBITMASK0 : (UDDRC_REGS Offset: 0x98) ECC Corrected Data Bit Mask Register 0-------- */
+/* (UDDRC_ECCBITMASK0) Indicates the mask for the corrected data portion.
+ - 1 on any bit indicates that the bit has been corrected by the ECC logic
+ - 0 on any bit indicates that the bit has not been corrected by the ECC logic
+This register accumulates data over multiple ECC errors, to give an overall indication of which bits are being fixed.
+It is cleared by writing a 1 to ECCCTL.ecc_corrected_err_clr.
+For 16-bit ECC, only bits [15:0] are used.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCBITMASK0_ECC_CORR_BIT_MASK_31_0_POS: u32 = 0;
+pub const UDDRC_ECCBITMASK0_ECC_CORR_BIT_MASK_31_0_MSK: u32 =
+    0xffffffffu32 << UDDRC_ECCBITMASK0_ECC_CORR_BIT_MASK_31_0_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCBITMASK0_ECC_CORR_BIT_MASK_31_0(value: u32) -> u32 {
+    UDDRC_ECCBITMASK0_ECC_CORR_BIT_MASK_31_0_MSK
+        & ((value) << UDDRC_ECCBITMASK0_ECC_CORR_BIT_MASK_31_0_POS)
+}
+
+/* -------- UDDRC_ECCBITMASK1 : (UDDRC_REGS Offset: 0x9c) ECC Corrected Data Bit Mask Register 1-------- */
+/* (UDDRC_ECCBITMASK1) Indicates the mask for the corrected data portion.
+ - 1 on any bit indicates that the bit has been corrected by the ECC logic
+ - 0 on any bit indicates that the bit has not been corrected by the ECC logic
+This register accumulates data over multiple ECC errors, to give an overall indication of which bits are being fixed.
+It is cleared by writing a 1 to ECCCTL.ecc_corrected_err_clr.
+For 32-bit ECC and 16-bit ECC, this register is not used.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCBITMASK1_ECC_CORR_BIT_MASK_63_32_POS: u32 = 0;
+pub const UDDRC_ECCBITMASK1_ECC_CORR_BIT_MASK_63_32_MSK: u32 =
+    0xffffffffu32 << UDDRC_ECCBITMASK1_ECC_CORR_BIT_MASK_63_32_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCBITMASK1_ECC_CORR_BIT_MASK_63_32(value: u32) -> u32 {
+    UDDRC_ECCBITMASK1_ECC_CORR_BIT_MASK_63_32_MSK
+        & ((value) << UDDRC_ECCBITMASK1_ECC_CORR_BIT_MASK_63_32_POS)
+}
+
+/* -------- UDDRC_ECCBITMASK2 : (UDDRC_REGS Offset: 0xa0) ECC Corrected Data Bit Mask Register 2-------- */
+/* (UDDRC_ECCBITMASK2) Indicates the mask for the corrected data portion.
+ - 1 on any bit indicates that the bit has been corrected by the ECC logic
+ - 0 on any bit indicates that the bit has not been corrected by the ECC logic
+This register accumulates data over multiple ECC errors, to give an overall indication of which bits are being fixed.
+It is cleared by writing a 1 to ECCCTL.ecc_corrected_err_clr.
+This register refers to the ECC byte, which is bits [71:64] for 64-bit ECC, [39:32] for 32-bit ECC, or [23:16] for 16-bit ECC.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCBITMASK2_ECC_CORR_BIT_MASK_71_64_POS: u32 = 0;
+pub const UDDRC_ECCBITMASK2_ECC_CORR_BIT_MASK_71_64_MSK: u32 =
+    0xffu32 << UDDRC_ECCBITMASK2_ECC_CORR_BIT_MASK_71_64_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCBITMASK2_ECC_CORR_BIT_MASK_71_64(value: u32) -> u32 {
+    UDDRC_ECCBITMASK2_ECC_CORR_BIT_MASK_71_64_MSK
+        & ((value) << UDDRC_ECCBITMASK2_ECC_CORR_BIT_MASK_71_64_POS)
+}
+
+/* -------- UDDRC_ECCUADDR0 : (UDDRC_REGS Offset: 0xa4) ECC Uncorrected Error Address Register 0-------- */
+/* (UDDRC_ECCUADDR0) Indicates the page/row number of a read resulting in an uncorrected ECC error.
+This is 18-bits wide in configurations with DDR4 support and 16-bits in all other configurations.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCUADDR0_ECC_UNCORR_ROW_POS: u32 = 0;
+pub const UDDRC_ECCUADDR0_ECC_UNCORR_ROW_MSK: u32 =
+    0x3ffffu32 << UDDRC_ECCUADDR0_ECC_UNCORR_ROW_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCUADDR0_ECC_UNCORR_ROW(value: u32) -> u32 {
+    UDDRC_ECCUADDR0_ECC_UNCORR_ROW_MSK & ((value) << UDDRC_ECCUADDR0_ECC_UNCORR_ROW_POS)
+}
+
+/* -------- UDDRC_ECCUADDR1 : (UDDRC_REGS Offset: 0xa8) ECC Uncorrected Error Address Register 1-------- */
+/* (UDDRC_ECCUADDR1) Indicates the block number of a read resulting in an uncorrected ECC error (lowest bit not assigned here).
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCUADDR1_ECC_UNCORR_COL_POS: u32 = 0;
+pub const UDDRC_ECCUADDR1_ECC_UNCORR_COL_MSK: u32 = 0xfffu32 << UDDRC_ECCUADDR1_ECC_UNCORR_COL_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCUADDR1_ECC_UNCORR_COL(value: u32) -> u32 {
+    UDDRC_ECCUADDR1_ECC_UNCORR_COL_MSK & ((value) << UDDRC_ECCUADDR1_ECC_UNCORR_COL_POS)
+}
+
+/* (UDDRC_ECCUADDR1) Indicates the bank number of a read resulting in an uncorrected ECC error.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCUADDR1_ECC_UNCORR_BANK_POS: u32 = 16;
+pub const UDDRC_ECCUADDR1_ECC_UNCORR_BANK_MSK: u32 = 0x7u32 << UDDRC_ECCUADDR1_ECC_UNCORR_BANK_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCUADDR1_ECC_UNCORR_BANK(value: u32) -> u32 {
+    UDDRC_ECCUADDR1_ECC_UNCORR_BANK_MSK & ((value) << UDDRC_ECCUADDR1_ECC_UNCORR_BANK_POS)
+}
+
+/* -------- UDDRC_ECCUSYN0 : (UDDRC_REGS Offset: 0xac) ECC Uncorrected Syndrome Register 0-------- */
+/* (UDDRC_ECCUSYN0) Indicates the data pattern that resulted in an uncorrected error, one for each ECC lane, all concatenated together.
+For 16-bit ECC, only bits [15:0] are used.
+This field can be masked by setting the dis_regs_ecc_syndrome input to value 1.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCUSYN0_ECC_UNCORR_SYNDROMES_31_0_POS: u32 = 0;
+pub const UDDRC_ECCUSYN0_ECC_UNCORR_SYNDROMES_31_0_MSK: u32 =
+    0xffffffffu32 << UDDRC_ECCUSYN0_ECC_UNCORR_SYNDROMES_31_0_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCUSYN0_ECC_UNCORR_SYNDROMES_31_0(value: u32) -> u32 {
+    UDDRC_ECCUSYN0_ECC_UNCORR_SYNDROMES_31_0_MSK
+        & ((value) << UDDRC_ECCUSYN0_ECC_UNCORR_SYNDROMES_31_0_POS)
+}
+
+/* -------- UDDRC_ECCUSYN1 : (UDDRC_REGS Offset: 0xb0) ECC Uncorrected Syndrome Register 1-------- */
+/* (UDDRC_ECCUSYN1) Indicates the data pattern that resulted in an uncorrected error, one for each ECC lane, all concatenated together.
+For 32-bit ECC and 16-bit ECC, this register is not used.
+This field can be masked by setting the dis_regs_ecc_syndrome input to value 1.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCUSYN1_ECC_UNCORR_SYNDROMES_63_32_POS: u32 = 0;
+pub const UDDRC_ECCUSYN1_ECC_UNCORR_SYNDROMES_63_32_MSK: u32 =
+    0xffffffffu32 << UDDRC_ECCUSYN1_ECC_UNCORR_SYNDROMES_63_32_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCUSYN1_ECC_UNCORR_SYNDROMES_63_32(value: u32) -> u32 {
+    UDDRC_ECCUSYN1_ECC_UNCORR_SYNDROMES_63_32_MSK
+        & ((value) << UDDRC_ECCUSYN1_ECC_UNCORR_SYNDROMES_63_32_POS)
+}
+
+/* -------- UDDRC_ECCUSYN2 : (UDDRC_REGS Offset: 0xb4) ECC Uncorrected Syndrome Register 2-------- */
+/* (UDDRC_ECCUSYN2) Indicates the data pattern that resulted in an uncorrected error one for each ECC lane, all concatenated together.
+This register refers to the ECC byte, which is bits [71:64] for 64-bit ECC, [39:32] for 32-bit ECC, or [23:16] for 16-bit ECC.
+This field can be masked by setting the dis_regs_ecc_syndrome input to value 1.
+Programming Mode: Dynamic
+*/
+pub const UDDRC_ECCUSYN2_ECC_UNCORR_SYNDROMES_71_64_POS: u32 = 0;
+pub const UDDRC_ECCUSYN2_ECC_UNCORR_SYNDROMES_71_64_MSK: u32 =
+    0xffu32 << UDDRC_ECCUSYN2_ECC_UNCORR_SYNDROMES_71_64_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCUSYN2_ECC_UNCORR_SYNDROMES_71_64(value: u32) -> u32 {
+    UDDRC_ECCUSYN2_ECC_UNCORR_SYNDROMES_71_64_MSK
+        & ((value) << UDDRC_ECCUSYN2_ECC_UNCORR_SYNDROMES_71_64_POS)
+}
+
+/* -------- UDDRC_ECCPOISONADDR0 : (UDDRC_REGS Offset: 0xb8) ECC Data Poisoning Address Register 0. If a HIF write data beat matches the address specified in this register, an ECC error is introduced on that transaction (write/RMW), if ECCCFG1.data_poison_en=1.-------- */
+/* (UDDRC_ECCPOISONADDR0) Indicates the column address for ECC poisoning.
+Note that this column address must be burst aligned:
+- In full bus width mode, ecc_poison_col[2:0] must be set to 0
+- In half bus width mode, ecc_poison_col[3:0] must be set to 0
+- In quarter bus width mode, ecc_poison_col[4:0] must be set to 0
+Programming Mode: Static
+*/
+pub const UDDRC_ECCPOISONADDR0_ECC_POISON_COL_POS: u32 = 0;
+pub const UDDRC_ECCPOISONADDR0_ECC_POISON_COL_MSK: u32 =
+    0xfffu32 << UDDRC_ECCPOISONADDR0_ECC_POISON_COL_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCPOISONADDR0_ECC_POISON_COL(value: u32) -> u32 {
+    UDDRC_ECCPOISONADDR0_ECC_POISON_COL_MSK & ((value) << UDDRC_ECCPOISONADDR0_ECC_POISON_COL_POS)
+}
+
+/* -------- UDDRC_ECCPOISONADDR1 : (UDDRC_REGS Offset: 0xbc) ECC Data Poisoning Address Register 1. If a HIF write data beat matches the address specified in this register, an ECC error is introduced on that transaction (write/RMW), if ECCCFG1.data_poison_en=1.-------- */
+/* (UDDRC_ECCPOISONADDR1) Row address for ECC poisoning. This is 18-bits wide in configurations with DDR4 support and 16-bits in all other configurations.
+Programming Mode: Static
+*/
+pub const UDDRC_ECCPOISONADDR1_ECC_POISON_ROW_POS: u32 = 0;
+pub const UDDRC_ECCPOISONADDR1_ECC_POISON_ROW_MSK: u32 =
+    0x3ffffu32 << UDDRC_ECCPOISONADDR1_ECC_POISON_ROW_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCPOISONADDR1_ECC_POISON_ROW(value: u32) -> u32 {
+    UDDRC_ECCPOISONADDR1_ECC_POISON_ROW_MSK & ((value) << UDDRC_ECCPOISONADDR1_ECC_POISON_ROW_POS)
+}
+
+/* (UDDRC_ECCPOISONADDR1) Bank address for ECC poisoning.
+Programming Mode: Static
+*/
+pub const UDDRC_ECCPOISONADDR1_ECC_POISON_BANK_BANKADDR0: u32 = 0;
+pub const UDDRC_ECCPOISONADDR1_ECC_POISON_BANK_BANKADDR1: u32 = 1;
+pub const UDDRC_ECCPOISONADDR1_ECC_POISON_BANK_BANKADDR2: u32 = 2;
+pub const UDDRC_ECCPOISONADDR1_ECC_POISON_BANK_BANKADDR3: u32 = 3;
+pub const UDDRC_ECCPOISONADDR1_ECC_POISON_BANK_BANKADDR4: u32 = 4;
+pub const UDDRC_ECCPOISONADDR1_ECC_POISON_BANK_BANKADDR5: u32 = 5;
+pub const UDDRC_ECCPOISONADDR1_ECC_POISON_BANK_BANKADDR6: u32 = 6;
+pub const UDDRC_ECCPOISONADDR1_ECC_POISON_BANK_BANKADDR7: u32 = 7;
+pub const UDDRC_ECCPOISONADDR1_ECC_POISON_BANK_POS: u32 = 24;
+pub const UDDRC_ECCPOISONADDR1_ECC_POISON_BANK_MSK: u32 =
+    0x7u32 << UDDRC_ECCPOISONADDR1_ECC_POISON_BANK_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ECCPOISONADDR1_ECC_POISON_BANK(value: u32) -> u32 {
+    UDDRC_ECCPOISONADDR1_ECC_POISON_BANK_MSK & ((value) << UDDRC_ECCPOISONADDR1_ECC_POISON_BANK_POS)
 }
 
 /* -------- UDDRC_CRCPARCTL0 : (UDDRC_REGS Offset: 0xC0)
@@ -4464,11 +5205,20 @@ pub const UDDRC_DBICTL_RD_DBI_EN: u32 = 0x1u32 << 2;
 */
 pub const UDDRC_DFIPHYMSTR_DFI_PHYMSTR_EN: u32 = 0x1u32 << 0;
 
+pub const UDDRC_ADDRMAP_DISABLE: u32 = -1i32 as u32;
+
 pub const UDDRC_ADDRMAP0_CS_B0_POS: u32 = 0;
 pub const UDDRC_ADDRMAP0_CS_B0_MSK: u32 = 0x1fu32 << UDDRC_ADDRMAP0_CS_B0_POS;
 #[allow(non_snake_case)]
 pub const fn UDDRC_ADDRMAP0_CS_B0(value: u32) -> u32 {
     UDDRC_ADDRMAP0_CS_B0_MSK & ((value) << UDDRC_ADDRMAP0_CS_B0_POS)
+}
+
+pub const UDDRC_ADDRMAP0_CS_B1_POS: u32 = 8;
+pub const UDDRC_ADDRMAP0_CS_B1_MSK: u32 = 0x1fu32 << UDDRC_ADDRMAP0_CS_B1_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ADDRMAP0_CS_B1(value: u32) -> u32 {
+    UDDRC_ADDRMAP0_CS_B1_MSK & ((value) << UDDRC_ADDRMAP0_CS_B1_POS)
 }
 
 /* -------- UDDRC_ADDRMAP1 : (UDDRC_REGS Offset: 0x204)
@@ -4852,6 +5602,16 @@ pub const fn UDDRC_ADDRMAP4_ADDRMAP_COL_B11(value: u32) -> u32 {
     UDDRC_ADDRMAP4_ADDRMAP_COL_B11_MSK & ((value) << UDDRC_ADDRMAP4_ADDRMAP_COL_B11_POS)
 }
 
+/* (UDDRC_ADDRMAP4)
+  The register provides a capability to map column address to lower HIF address in specific cases required by inline ECC configuration.
+
+  Set to 0 if inline ECC is not enabled (ECCCFG0.ecc_mode==0).
+Programming Mode: Static
+*/
+pub const UDDRC_ADDRMAP4_COL_ADDR_SHIFT_COLADDRSHIFT0: u32 = 0;
+pub const UDDRC_ADDRMAP4_COL_ADDR_SHIFT_COLADDRSHIFT1: u32 = 1;
+pub const UDDRC_ADDRMAP4_COL_ADDR_SHIFT: u32 = 0x1u32 << 31;
+
 /* -------- UDDRC_ADDRMAP5 : (UDDRC_REGS Offset: 0x214)
 * Address Map Register 5 --------
 */
@@ -4978,7 +5738,31 @@ pub const fn UDDRC_ADDRMAP6_ADDRMAP_ROW_B15(value: u32) -> u32 {
 * - 0 - non-LPDDR3 6Gb/12Gb device in use. All addresses are valid
 * Present only in designs configured to support LPDDR3.
 */
-pub const UDDRC_ADDRMAP6_LPDDR3_6GB_12GB: u32 = 0x1u32 << 31;
+/* (UDDRC_ADDRMAP6) Indicate what type of LPDDR3/LPDDR4 SDRAM device is in use. Here, the density size is per channel.
+When LPDDR3 device is used:
+    3'b100 - LPDDR3 SDRAM 6Gb/12Gb device in use. Every address having row[14:13]==2'b11 is considered as invalid
+    3'b000 - non-LPDDR3 6Gb/12Gb device in use. All addresses are valid Present only in designs configured to support LPDDR3.
+When LPDDR4 device is used:
+ - 3’b000: No LPDDR4 SDRAM 3Gb/6Gb/12Gb device in use.  All addresses are valid.
+ - 3’b001: LPDDR4 SDRAM 3Gb device with x16 mode is in use. Every address having row[14:13]==2’b11 is considered as invalid.
+ - 3’b010: LPDDR4 SDRAM 6Gb device with x16 mode or 3Gb device with byte mode is in use. Every address having row[15:14]==2’b11 is considered as invalid.
+ - 3’b011: LPDDR4 SDRAM 12Gb device with x16 mode or 6Gb device with byte mode is in use. Every address having row[16:15]==2’b11 is considered as invalid.
+ - 3’b101: LPDDR4 SDRAM 12Gb device with byte mode is in use. Every address having row[17:16]==2’b11 is considered as invalid.
+Programming Mode: Static
+*/
+pub const UDDRC_ADDRMAP6_LPDDR34_3GB_6GB_12GB_VAL0: u32 = 0;
+pub const UDDRC_ADDRMAP6_LPDDR34_3GB_6GB_12GB_VAL1: u32 = 1;
+pub const UDDRC_ADDRMAP6_LPDDR34_3GB_6GB_12GB_VAL2: u32 = 2;
+pub const UDDRC_ADDRMAP6_LPDDR34_3GB_6GB_12GB_VAL3: u32 = 3;
+pub const UDDRC_ADDRMAP6_LPDDR34_3GB_6GB_12GB_VAL4: u32 = 4;
+pub const UDDRC_ADDRMAP6_LPDDR34_3GB_6GB_12GB_VAL5: u32 = 5;
+pub const UDDRC_ADDRMAP6_LPDDR34_3GB_6GB_12GB_POS: u32 = 29;
+pub const UDDRC_ADDRMAP6_LPDDR34_3GB_6GB_12GB_MSK: u32 =
+    0x7u32 << UDDRC_ADDRMAP6_LPDDR34_3GB_6GB_12GB_POS;
+#[allow(non_snake_case)]
+pub const fn UDDRC_ADDRMAP6_LPDDR34_3GB_6GB_12GB(value: u32) -> u32 {
+    UDDRC_ADDRMAP6_LPDDR34_3GB_6GB_12GB_MSK & ((value) << UDDRC_ADDRMAP6_LPDDR34_3GB_6GB_12GB_POS)
+}
 
 pub const UDDRC_ADDRMAP7_ADDRMAP_ROW_B16_POS: u32 = 0;
 pub const UDDRC_ADDRMAP7_ADDRMAP_ROW_B16_MSK: u32 = 0xfu32 << UDDRC_ADDRMAP7_ADDRMAP_ROW_B16_POS;

@@ -48,7 +48,7 @@ SECTIONS
     .synced.bss (NOLOAD) : {
         _s_synced_bss = .;
         *(.synced.bss .synced.bss.*)
-        _e_synced_bss= .;
+        _e_synced_bss = .;
     } > REGION_SYNCED_BSS
 
     .data : {

@@ -40,6 +40,7 @@ extern "C" fn __init_bss(s: *mut u8, n: usize) {
     unsafe { core::ptr::write_bytes(s, 0, n) };
 }
 
+#[inline(always)]
 fn init_bss() {
     extern "C" {
         static mut _sbss: u8;
@@ -47,6 +48,30 @@ fn init_bss() {
     }
     let m_sbss = unsafe { &mut _sbss } as *mut _ as usize;
     let m_ebss = unsafe { &mut _ebss } as *mut _ as usize;
+    let size = m_ebss - m_sbss;
+    if size > 0 {
+        __init_bss(m_sbss as *mut u8, size);
+    }
+    extern "C" {
+        static mut _s_synced_bss: u8;
+        static mut _e_synced_bss: u8;
+    }
+    let m_sbss = unsafe { &mut _s_synced_bss } as *mut _ as usize;
+    let m_ebss = unsafe { &mut _e_synced_bss } as *mut _ as usize;
+    let size = m_ebss - m_sbss;
+    if size > 0 {
+        __init_bss(m_sbss as *mut u8, size);
+    }
+}
+
+#[inline(always)]
+fn init_cpu_bss() {
+    extern "C" {
+        static mut _s_cpu_bss: u8;
+        static mut _e_cpu_bss: u8;
+    }
+    let m_sbss = unsafe { &mut _s_cpu_bss } as *mut _ as usize;
+    let m_ebss = unsafe { &mut _e_cpu_bss } as *mut _ as usize;
     let size = m_ebss - m_sbss;
     if size > 0 {
         __init_bss(m_sbss as *mut u8, size);
@@ -127,6 +152,7 @@ pub(crate) fn vfw_start() {
     __pre_init();
     VfwStack.load_context(cpu_ctx(hartid()).context_ptr(), arch::trap_handler);
     __post_init();
+    init_cpu_bss();
     if hartid() == 0 {
         init_bss();
         init_heap();

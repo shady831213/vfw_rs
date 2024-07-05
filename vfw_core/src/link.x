@@ -33,19 +33,19 @@ SECTIONS
         _egot = .;
     } > REGION_GOT
     
-    .bss : {
+    .bss (NOLOAD) : {
         _sbss = .;
         *(.bss .bss.* .sbss .sbss.*)
         _ebss = .;
     } > REGION_BSS
 
-    .cpu.bss : {
+    .cpu.bss (NOLOAD) : {
         _s_cpu_bss = .;
         *(.cpu.bss .cpu.bss.*)
         _e_cpu_bss = .;
     } > REGION_CPU_BSS
 
-    .synced.bss : {
+    .synced.bss (NOLOAD) : {
         _s_synced_bss = .;
         *(.synced.bss .synced.bss.*)
         _e_synced_bss= .;

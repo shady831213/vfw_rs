@@ -45,16 +45,14 @@ fn init_bss() {
     extern "C" {
         static mut _sbss: u8;
         static mut _ebss: u8;
+        static mut _s_synced_bss: u8;
+        static mut _e_synced_bss: u8;
     }
     let m_sbss = unsafe { &mut _sbss } as *mut _ as usize;
     let m_ebss = unsafe { &mut _ebss } as *mut _ as usize;
     let size = m_ebss - m_sbss;
     if size > 0 {
         __init_bss(m_sbss as *mut u8, size);
-    }
-    extern "C" {
-        static mut _s_synced_bss: u8;
-        static mut _e_synced_bss: u8;
     }
     let m_sbss = unsafe { &mut _s_synced_bss } as *mut _ as usize;
     let m_ebss = unsafe { &mut _e_synced_bss } as *mut _ as usize;

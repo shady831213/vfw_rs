@@ -150,8 +150,8 @@ pub(crate) fn vfw_start() {
     __pre_init();
     VfwStack.load_context(cpu_ctx(hartid()).context_ptr(), arch::trap_handler);
     __post_init();
-    init_cpu_bss();
     if hartid() == 0 {
+        init_cpu_bss();
         init_bss();
         init_heap();
         if num_cores() > MAX_CORES {
@@ -165,6 +165,8 @@ pub(crate) fn vfw_start() {
             __boot_core_init();
         }
         main_thread(0, vfw_main as usize, &[]);
+    } else if PER_CPU_LEN > 1 {
+        init_cpu_bss();
     }
     thread_loop();
 }

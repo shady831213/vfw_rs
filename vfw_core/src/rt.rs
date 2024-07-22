@@ -165,8 +165,11 @@ pub(crate) fn vfw_start() {
             __boot_core_init();
         }
         main_thread(0, vfw_main as usize, &[]);
-    } else if PER_CPU_LEN > 1 {
-        init_cpu_bss();
+    } else {
+        #[cfg(not(feature = "cpu_data_non_priv"))]
+        {
+            init_cpu_bss();
+        }
     }
     thread_loop();
 }

@@ -103,6 +103,7 @@ macro_rules! relocation {
                 &mut *(crate::relocation!(@do_asm $sym) as *mut $t)
             }
             #[cfg(not(all(feature="reloc", target_arch = "riscv64")))]
+            #[allow(static_mut_refs)]
             {
                 &mut $sym
             }
@@ -115,6 +116,7 @@ macro_rules! relocation {
                 &const *(crate::relocation!(@do_asm $sym) as *const $t)
             }
             #[cfg(not(all(feature="reloc", target_arch = "riscv64")))]
+            #[allow(static_mut_refs)]
             {
                 &const $sym
             }

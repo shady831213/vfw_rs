@@ -1,6 +1,7 @@
 [package]
 name = "vfw_hal"
 version = "0.1.0"
+rust-version = "1.80"
 edition = "2021"
 links = "vfw_hal"
 

@@ -40,7 +40,7 @@ impl Stack for VfwStack {
 #[no_mangle]
 #[inline(always)]
 pub extern "C" fn stack_start() -> usize {
-    let m_sstack = unsafe { &mut _sstack } as *mut _ as usize;
+    let m_sstack = &raw mut _sstack as *mut _ as usize;
     #[cfg(feature = "stack_non_priv")]
     {
         m_sstack - stack_size() * crate::hartid()

@@ -7,7 +7,7 @@ pub fn init_trap(mode: TrapMode) {
 
 #[naked]
 unsafe extern "C" fn trap_vec() {
-    core::arch::asm!(
+    core::arch::naked_asm!(
         ".align 2",
         ".option push",
         ".option norvc",
@@ -24,7 +24,6 @@ unsafe extern "C" fn trap_vec() {
         "j {default}", // reserved
         "j {default}", // machine    external
         ".option pop",
-        default = sym crate::arch::trap_entry,
-        options(noreturn)
+        default = sym crate::arch::trap_entry
     )
 }

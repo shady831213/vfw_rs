@@ -2,7 +2,6 @@
 #![feature(generic_const_exprs)]
 #![feature(const_trait_impl)]
 #![allow(incomplete_features)]
-#![feature(const_fn_floating_point_arithmetic)]
 #![feature(linkage)]
 pub extern crate embedded_hal;
 pub extern crate nb;

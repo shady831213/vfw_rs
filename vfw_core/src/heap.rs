@@ -55,9 +55,9 @@ mod lock_heap {
             static _heap_size: usize;
             static _provide_base: usize;
         }
-        let m_sheap = unsafe { &mut _sheap } as *mut _ as usize;
-        let m_heap_size = unsafe { &_heap_size } as *const usize as usize;
-        let m_provide_base = unsafe { &_provide_base } as *const usize as usize;
+        let m_sheap = &raw mut _sheap as *mut _ as usize;
+        let m_heap_size = &raw const _heap_size as *const usize as usize;
+        let m_provide_base = &raw const _provide_base as *const usize as usize;
         //interrupt should be enabled after calling init_heap()
         unsafe {
             ALLOCATOR

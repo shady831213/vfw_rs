@@ -35,7 +35,7 @@ mod stack_init {
 #[no_mangle]
 #[link_section = ".init"]
 unsafe extern "C" fn _start() {
-    core::arch::asm!(
+    core::arch::naked_asm!(
         // some platform need reset registers manually
         "
         li  x1, 0
@@ -85,20 +85,18 @@ unsafe extern "C" fn _start() {
     ",
         abort = sym abort,
         move_stack          =   sym crate::arch::reuse_stack_for_trap,
-        vfw_start = sym crate::vfw_start,
-        options(noreturn)
+        vfw_start = sym crate::vfw_start
     )
 }
 
 #[naked]
 unsafe extern "C" fn abort() {
-    core::arch::asm!(
+    core::arch::naked_asm!(
         "
         .align 2
         wfi
         j {abort}
         ",
-        abort = sym abort,
-        options(noreturn)
+        abort = sym abort
     )
 }

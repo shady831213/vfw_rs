@@ -105,7 +105,7 @@ pub fn dummy_trap_handler() {}
 //we don't swap sp by default, if sp should be swapped, handle it in handler
 #[naked]
 pub unsafe extern "C" fn trap_entry() {
-    core::arch::asm!(
+    core::arch::naked_asm!(
         ".align 2",
         exchange!(),
         //save a0 to scrach
@@ -191,8 +191,7 @@ pub unsafe extern "C" fn trap_entry() {
         load!(a1[30] => sp),
         load!(a1[9] => a1),
         exchange!(),
-        "   mret",
-        options(noreturn)
+        "   mret"
     )
 }
 
@@ -225,13 +224,12 @@ impl FlowContext {
 #[naked]
 pub unsafe extern "C" fn reuse_stack_for_trap() {
     const LAYOUT: Layout = Layout::new::<TrapContext>();
-    core::arch::asm!(
+    core::arch::naked_asm!(
         "   addi sp, sp, {size}
             andi sp, sp, {mask}
             ret
         ",
         size = const -(LAYOUT.size() as isize),
-        mask = const !(LAYOUT.align() as isize - 1) ,
-        options(noreturn)
+        mask = const !(LAYOUT.align() as isize - 1)
     )
 }

@@ -222,6 +222,7 @@ impl FlowContext {
 }
 
 #[naked]
+#[link_section = ".init.trap"]
 pub unsafe extern "C" fn reuse_stack_for_trap() {
     const LAYOUT: Layout = Layout::new::<TrapContext>();
     core::arch::naked_asm!(

@@ -1,11 +1,11 @@
 
 SECTIONS
 {    
-    .text : {
+    .text : ALIGN(4) {
         _stext = .;
         /* Place init sections first */
         KEEP(*(.init));
-        KEEP(*(.init.rust));
+        KEEP(*(.init.*));
         *(.text .text.*)
         _etext = .;
     } > REGION_TEXT
@@ -16,7 +16,7 @@ SECTIONS
         _sstack = .;
     } > REGION_STACK
 
-    .rodata : {
+    .rodata : ALIGN(4) {
         _srodata = .;
         *(.srodata .srodata.*);
         *(.rodata .rodata.*)
@@ -27,55 +27,62 @@ SECTIONS
         _erodata = .;
     } > REGION_RODATA
 
-    .got : {
+    .got : ALIGN(4) {
         _sgot = .;
         *(.got .got.*);
         _egot = .;
     } > REGION_GOT
-    
-    .bss (NOLOAD) : {
+
+    .init.bss : {
+        *(.rel_lottery)
+    } > REGION_INIT_BSS
+
+    .bss (NOLOAD) : ALIGN(4) {
         _sbss = .;
         *(.bss .bss.* .sbss .sbss.*)
         _ebss = .;
     } > REGION_BSS
 
-    .cpu.bss (NOLOAD) : {
+    .cpu.bss (NOLOAD) : ALIGN(4) {
         _s_cpu_bss = .;
         *(.cpu.bss .cpu.bss.*)
         _e_cpu_bss = .;
     } > REGION_CPU_BSS
 
-    .synced.bss (NOLOAD) : {
+    .synced.bss (NOLOAD) : ALIGN(4) {
         _s_synced_bss = .;
         *(.synced.bss .synced.bss.*)
         _e_synced_bss = .;
     } > REGION_SYNCED_BSS
 
-    .data : {
-        sidata = LOADADDR(.data);
+    .data : ALIGN(4) {
         _sdata = .;
         /* Must be called __global_pointer$ for linker relaxations to work. */
         PROVIDE(__global_pointer$ = . + 0x800);
         *(.sdata .sdata.* .sdata2 .sdata2.*);
         *(.data .data.*)
         _edata = .;
-    } > REGION_DATA
+    } > REGION_DATA AT>REGION_DATA_LOAD
 
-    .synced.data : {
-        sisynceddata = LOADADDR(.synced.data);
+    PROVIDE(_sdata_load = LOADADDR(.data));
+
+    .synced.data : ALIGN(4) {
         _s_synced_data = .;
         *(.synced.data .synced.data.*)
         _e_synced_data = .;
-    } > REGION_SYNCED_DATA
+    } > REGION_SYNCED_DATA AT>REGION_SYNCED_DATA_LOAD
 
-    .cpu.data : {
-        sicpudata = LOADADDR(.cpu.data);
+    PROVIDE(_s_synced_data_load = LOADADDR(.synced.data));
+
+    .cpu.data : ALIGN(4) {
         _s_cpu_data = .;
         *(.cpu.data .cpu.data.*)
         _e_cpu_data = .;
-    } > REGION_CPU_DATA
+    } > REGION_CPU_DATA AT>REGION_CPU_DATA_LOAD
 
-    .heap (NOLOAD) : {
+    PROVIDE(_s_cpu_data_load = LOADADDR(.cpu.data));
+
+    .heap (NOLOAD) : ALIGN(4) {
         _sheap = .;
         . += _heap_size;
         . = ALIGN(4);

@@ -8,33 +8,56 @@ use crate::wait_ipi;
 use crate::{Stack, VfwStack};
 use core::ptr::NonNull;
 
-#[no_mangle]
-pub extern "C" fn num_cores() -> usize {
-    extern "C" {
-        static _num_cores: u8;
+//sections must be always 4 bytes aligned!!!
+#[inline(always)]
+unsafe fn _sec_reloc(start: usize, end: usize, load_start: usize) {
+    let size = end.next_multiple_of(core::mem::size_of::<u32>()) - start;
+    if size > 0 && start != load_start {
+        for i in (0..size).step_by(core::mem::size_of::<u32>()) {
+            *((start + i) as *mut u32) = *((load_start + i) as *const u32);
+        }
     }
-    let m_num_cores = &raw const _num_cores as *const u8 as usize;
-    m_num_cores
 }
 
-#[no_mangle]
-pub extern "C" fn hartid() -> usize {
-    arch::hartid()
+macro_rules! sec_reloc {
+    ($start:ident, $end:ident, $load_start:ident) => {
+        unsafe {
+            extern "C" {
+                static mut $start: u32;
+                static $end: u32;
+                static $load_start: u32;
+            }
+            _sec_reloc(
+                &raw mut $start as *mut _ as usize,
+                &raw const $end as *const _ as usize,
+                &raw const $load_start as *const _ as usize,
+            )
+        }
+    };
 }
 
-#[no_mangle]
-pub extern "C" fn save_flag() -> usize {
-    arch::save_flag()
+#[cfg(any(
+    feature = "max_cores_128",
+    feature = "max_cores_64",
+    feature = "max_cores_32",
+    feature = "max_cores_16",
+    feature = "max_cores_8",
+    feature = "max_cores_4",
+    feature = "max_cores_2"
+))]
+mod lottery {
+    pub(super) const REL_INIT: usize = 0;
+    pub(super) const REL_ACQ: usize = 1;
+    pub(super) const REL_DONE: usize = 2;
+
+    use core::sync::atomic::AtomicUsize;
+
+    #[link_section = ".rel_lottary"]
+    pub(super) static REL_LOTTARY: AtomicUsize = AtomicUsize::new(REL_INIT);
 }
 
-#[no_mangle]
-pub extern "C" fn restore_flag(flag: usize) {
-    arch::restore_flag(flag)
-}
-
-#[linkage = "weak"]
-#[no_mangle]
-extern "C" fn __init_bss(s: *mut u8, n: usize) {
+#[inline(always)]
+fn __init_bss(s: *mut u8, n: usize) {
     unsafe { core::ptr::write_bytes(s, 0, n) };
 }
 
@@ -72,6 +95,86 @@ fn init_cpu_bss() {
     if size > 0 {
         __init_bss(m_sbss as *mut u8, size);
     }
+}
+
+#[inline(always)]
+pub(crate) fn vfw_relocation() {
+    #[cfg(any(
+        feature = "max_cores_128",
+        feature = "max_cores_64",
+        feature = "max_cores_32",
+        feature = "max_cores_16",
+        feature = "max_cores_8",
+        feature = "max_cores_4",
+        feature = "max_cores_2"
+    ))]
+    {
+        use core::hint::spin_loop;
+        use core::sync::atomic::Ordering;
+        loop {
+            match lottery::REL_LOTTARY.compare_exchange(0, 1, Ordering::AcqRel, Ordering::Relaxed) {
+                Ok(_) => {
+                    sec_reloc!(_sdata, _edata, _sdata_load);
+                    sec_reloc!(_s_synced_data, _e_synced_data, _s_synced_data_load);
+                    sec_reloc!(_s_cpu_data, _e_cpu_data, _s_cpu_data_load);
+                    init_cpu_bss();
+                    init_bss();
+                    lottery::REL_LOTTARY.store(lottery::REL_DONE, Ordering::Release);
+                    break;
+                }
+                Err(s) => match s {
+                    lottery::REL_ACQ => spin_loop(),
+                    lottery::REL_DONE => {
+                        #[cfg(not(feature = "cpu_data_non_priv"))]
+                        {
+                            sec_reloc!(_s_cpu_data, _e_cpu_data, _s_cpu_data_load);
+                            init_cpu_bss();
+                        }
+                        break;
+                    }
+                    _ => lottery::REL_LOTTARY.store(lottery::REL_INIT, Ordering::Release),
+                },
+            }
+        }
+    }
+    #[cfg(not(any(
+        feature = "max_cores_128",
+        feature = "max_cores_64",
+        feature = "max_cores_32",
+        feature = "max_cores_16",
+        feature = "max_cores_8",
+        feature = "max_cores_4",
+        feature = "max_cores_2"
+    )))]
+    {
+        sec_reloc!(_sdata, _edata, _sdata_load);
+        sec_reloc!(_s_synced_data, _e_synced_data, _s_synced_data_load);
+        sec_reloc!(_s_cpu_data, _e_cpu_data, _s_cpu_data_load);
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn num_cores() -> usize {
+    extern "C" {
+        static _num_cores: u8;
+    }
+    let m_num_cores = &raw const _num_cores as *const u8 as usize;
+    m_num_cores
+}
+
+#[no_mangle]
+pub extern "C" fn hartid() -> usize {
+    arch::hartid()
+}
+
+#[no_mangle]
+pub extern "C" fn save_flag() -> usize {
+    arch::save_flag()
+}
+
+#[no_mangle]
+pub extern "C" fn restore_flag(flag: usize) {
+    arch::restore_flag(flag)
 }
 
 #[cfg(all(feature = "cpu_data_non_priv", feature = "max_cores_128"))]
@@ -149,8 +252,6 @@ pub(crate) fn vfw_start() {
     VfwStack.load_context(cpu_ctx(hartid()).context_ptr(), arch::trap_handler);
     __post_init();
     if hartid() == 0 {
-        init_cpu_bss();
-        init_bss();
         init_heap();
         if num_cores() > MAX_CORES {
             panic!(
@@ -163,11 +264,6 @@ pub(crate) fn vfw_start() {
             __boot_core_init();
         }
         main_thread(0, vfw_main as usize, &[]);
-    } else {
-        #[cfg(not(feature = "cpu_data_non_priv"))]
-        {
-            init_cpu_bss();
-        }
     }
     thread_loop();
 }

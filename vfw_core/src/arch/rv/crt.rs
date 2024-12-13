@@ -77,16 +77,25 @@ unsafe extern "C" fn _start() {
         .option pop
     ",
     laod_sp!(),
-    "call {move_stack}
+    "
+    call {move_stack}
+    ",
+    "
+    call {relocation}
+    fence.i
+    ",
+    "
     j {vfw_start}
     ",
         abort = sym abort,
+        relocation = sym crate::vfw_relocation,
         move_stack          =   sym crate::arch::reuse_stack_for_trap,
         vfw_start = sym crate::vfw_start
     )
 }
 
 #[naked]
+#[link_section = ".init.abort"]
 unsafe extern "C" fn abort() {
     core::arch::naked_asm!(
         "

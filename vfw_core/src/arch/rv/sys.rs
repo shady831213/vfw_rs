@@ -98,28 +98,12 @@ macro_rules! check_stack {
 macro_rules! relocation {
     (mut $sym:ident:$t:ty) => {
         unsafe {
-            #[cfg(all(feature="reloc", target_arch = "riscv64"))]
-            {
-                &mut *(crate::relocation!(@do_asm $sym) as *mut $t)
-            }
-            #[cfg(not(all(feature="reloc", target_arch = "riscv64")))]
-            #[allow(static_mut_refs)]
-            {
-                &mut $sym
-            }
+            &mut *(crate::relocation!(@do_asm $sym) as *mut $t)
         }
     };
     ($sym:ident:$t:ty) => {
         unsafe {
-            #[cfg(all(feature="reloc", target_arch = "riscv64"))]
-            {
-                &const *(crate::relocation!(@do_asm $sym) as *const $t)
-            }
-            #[cfg(not(all(feature="reloc", target_arch = "riscv64")))]
-            #[allow(static_mut_refs)]
-            {
-                &const $sym
-            }
+            &const *(crate::relocation!(@do_asm $sym) as *const $t)
         }
     };
     (@do_asm $sym:ident) => {

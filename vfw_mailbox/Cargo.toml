@@ -17,7 +17,6 @@ riscv.workspace = true
 vfw_build_utils.workspace = true
 
 [features]
-reloc = []
 ptr64 = ["mailbox_rs/ptr64"]
 ptr32 = ["mailbox_rs/ptr32"]
 max_chs_1 = []

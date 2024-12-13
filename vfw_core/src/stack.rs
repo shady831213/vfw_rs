@@ -5,7 +5,6 @@ use core::{alloc::Layout, mem::forget, ops::Range, ptr::NonNull};
 extern "C" {
     static mut _sstack: u8;
     static _stack_size: usize;
-    static _provide_base: usize;
 }
 
 pub trait Stack {
@@ -54,9 +53,8 @@ pub extern "C" fn stack_start() -> usize {
 #[no_mangle]
 #[inline(always)]
 pub extern "C" fn stack_size() -> usize {
-    let m_stack_size = unsafe { &_stack_size } as *const usize as usize;
-    let m_provide_base = unsafe { &_provide_base } as *const usize as usize;
-    m_stack_size - m_provide_base
+    let m_stack_size = &raw const _stack_size as *const usize as usize;
+    m_stack_size
 }
 
 // modified from https://github.com/YdrMaster/fast-trap

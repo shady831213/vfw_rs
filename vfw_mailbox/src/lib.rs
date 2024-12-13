@@ -68,7 +68,6 @@ pub fn mb_sender() -> MBNbRefSender<MBChannel> {
         0
     };
     MBNbRefSender::new(unsafe {
-        #[cfg(all(feature = "reloc", target_arch = "riscv64"))]
         {
             let o: usize;
             core::arch::asm!(
@@ -80,10 +79,6 @@ pub fn mb_sender() -> MBNbRefSender<MBChannel> {
             o = out(reg) o,
             );
             &mut (&mut *(o as *mut [MBChannel; MBS]))[id]
-        }
-        #[cfg(not(all(feature = "reloc", target_arch = "riscv64")))]
-        {
-            &mut MB_CH_RAW[id]
         }
     })
 }

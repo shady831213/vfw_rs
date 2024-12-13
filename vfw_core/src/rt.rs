@@ -12,11 +12,9 @@ use core::ptr::NonNull;
 pub extern "C" fn num_cores() -> usize {
     extern "C" {
         static _num_cores: u8;
-        static _provide_base: usize;
     }
-    let m_num_cores = (unsafe { &_num_cores }) as *const u8 as usize;
-    let m_provide_base = unsafe { &_provide_base } as *const usize as usize;
-    m_num_cores - m_provide_base
+    let m_num_cores = &raw const _num_cores as *const u8 as usize;
+    m_num_cores
 }
 
 #[no_mangle]

@@ -39,8 +39,11 @@ SECTIONS
     } > REGION_RODATA AT>REGION_RODATA_LOAD
     PROVIDE(_srodata_load = LOADADDR(.rodata));
 
+
     .init.bss : {
+        _s_init_bss = .;
         *(.rel_lottery)
+        _e_init_bss = .;
     } > REGION_INIT_BSS
 
     .bss {{load_bss}} : ALIGN(4) {

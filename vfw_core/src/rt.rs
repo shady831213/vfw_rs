@@ -11,7 +11,7 @@ use core::ptr::NonNull;
 //sections must be always 4 bytes aligned!!!
 #[inline(always)]
 unsafe fn _sec_reloc(start: usize, end: usize, load_start: usize) {
-    let size = end.next_multiple_of(core::mem::size_of::<u32>()) - start;
+    let size = (((end + 3) >> 2) << 2) - start;
     if size > 0 && start != load_start {
         for i in (0..size).step_by(core::mem::size_of::<u32>()) {
             *((start + i) as *mut u32) = *((load_start + i) as *const u32);
@@ -58,7 +58,11 @@ mod lottery {
 
 #[inline(always)]
 fn __init_bss(s: *mut u8, n: usize) {
-    unsafe { core::ptr::write_bytes(s, 0, n) };
+    unsafe {
+        for i in 0..n {
+            *((s as usize + i) as *mut u8) = 0;
+        }
+    };
 }
 
 #[inline(always)]
@@ -98,6 +102,7 @@ fn init_cpu_bss() {
 }
 
 #[inline(always)]
+#[link_section = ".init.rust"]
 pub(crate) fn vfw_relocation() {
     #[cfg(any(
         feature = "max_cores_128",
@@ -114,6 +119,8 @@ pub(crate) fn vfw_relocation() {
         loop {
             match lottery::REL_LOTTARY.compare_exchange(0, 1, Ordering::AcqRel, Ordering::Relaxed) {
                 Ok(_) => {
+                    sec_reloc!(_srodata, _erodata, _srodata_load);
+                    sec_reloc!(_stext, _etext, _stext_load);
                     sec_reloc!(_sdata, _edata, _sdata_load);
                     sec_reloc!(_s_synced_data, _e_synced_data, _s_synced_data_load);
                     sec_reloc!(_s_cpu_data, _e_cpu_data, _s_cpu_data_load);

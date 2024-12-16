@@ -1,14 +1,25 @@
 
 SECTIONS
 {    
-    .text : ALIGN(4) {
-        _stext = .;
+
+    .init : ALIGN(4) {
         /* Place init sections first */
         KEEP(*(.init));
         KEEP(*(.init.*));
+    } > REGION_INIT
+
+    .got : ALIGN(4) {
+        _sgot = .;
+        *(.got .got.*);
+        _egot = .;
+    } > REGION_GOT
+
+    .text : ALIGN(4) {
+        _stext = .;
         *(.text .text.*)
         _etext = .;
-    } > REGION_TEXT
+    } > REGION_TEXT AT>REGION_TEXT_LOAD
+    PROVIDE(_stext_load = LOADADDR(.text));
 
     .stack (NOLOAD) : ALIGN(1K) {
         _estack = .;
@@ -25,13 +36,8 @@ SECTIONS
         section will have the correct alignment. */
         . = ALIGN(4);
         _erodata = .;
-    } > REGION_RODATA
-
-    .got : ALIGN(4) {
-        _sgot = .;
-        *(.got .got.*);
-        _egot = .;
-    } > REGION_GOT
+    } > REGION_RODATA AT>REGION_RODATA_LOAD
+    PROVIDE(_srodata_load = LOADADDR(.rodata));
 
     .init.bss : {
         *(.rel_lottery)
@@ -63,7 +69,6 @@ SECTIONS
         *(.data .data.*)
         _edata = .;
     } > REGION_DATA AT>REGION_DATA_LOAD
-
     PROVIDE(_sdata_load = LOADADDR(.data));
 
     .synced.data : ALIGN(4) {
@@ -71,7 +76,6 @@ SECTIONS
         *(.synced.data .synced.data.*)
         _e_synced_data = .;
     } > REGION_SYNCED_DATA AT>REGION_SYNCED_DATA_LOAD
-
     PROVIDE(_s_synced_data_load = LOADADDR(.synced.data));
 
     .cpu.data : ALIGN(4) {
@@ -79,7 +83,6 @@ SECTIONS
         *(.cpu.data .cpu.data.*)
         _e_cpu_data = .;
     } > REGION_CPU_DATA AT>REGION_CPU_DATA_LOAD
-
     PROVIDE(_s_cpu_data_load = LOADADDR(.cpu.data));
 
     .heap (NOLOAD) : ALIGN(4) {

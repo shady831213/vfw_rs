@@ -108,6 +108,7 @@ fn init_cpu_bss() {
 #[inline(always)]
 #[link_section = ".init.rust"]
 pub(crate) fn vfw_relocation() {
+    __pre_init();
     #[cfg(any(
         feature = "max_cores_128",
         feature = "max_cores_64",
@@ -248,6 +249,7 @@ pub const MAX_CORES: usize = 1;
 
 #[linkage = "weak"]
 #[no_mangle]
+#[link_section = ".init.rust"]
 extern "C" fn __pre_init() {}
 
 #[linkage = "weak"]
@@ -263,7 +265,6 @@ pub(crate) fn vfw_start() {
     extern "C" {
         fn __boot_core_init();
     }
-    __pre_init();
     VfwStack.load_context(cpu_ctx(hartid()).context_ptr(), arch::trap_handler);
     __post_init();
     if hartid() == 0 {

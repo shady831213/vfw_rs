@@ -154,9 +154,13 @@ pub(crate) fn vfw_relocation() {
         feature = "max_cores_2"
     )))]
     {
+        sec_reloc!(_srodata, _erodata, _srodata_load);
+        sec_reloc!(_stext, _etext, _stext_load);
         sec_reloc!(_sdata, _edata, _sdata_load);
         sec_reloc!(_s_synced_data, _e_synced_data, _s_synced_data_load);
         sec_reloc!(_s_cpu_data, _e_cpu_data, _s_cpu_data_load);
+        init_cpu_bss();
+        init_bss();
     }
 }
 

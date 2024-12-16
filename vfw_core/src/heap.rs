@@ -84,6 +84,7 @@ mod unlock_heap {
     struct HeapWithFlag;
 
     unsafe impl GlobalAlloc for HeapWithFlag {
+        #[allow(static_mut_refs)]
         unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
             let flag = save_flag();
             let ret = H
@@ -94,6 +95,7 @@ mod unlock_heap {
             ret
         }
 
+        #[allow(static_mut_refs)]
         unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
             let flag = save_flag();
             H.dealloc(NonNull::new_unchecked(ptr), layout);
@@ -105,13 +107,14 @@ mod unlock_heap {
     #[global_allocator]
     static ALLOCATOR: HeapWithFlag = HeapWithFlag;
 
+    #[allow(static_mut_refs)]
     pub fn init_heap() {
         extern "C" {
             static mut _sheap: u8;
             static _heap_size: usize;
         }
-        let m_sheap = unsafe { &mut _sheap } as *mut _ as usize;
-        let m_heap_size = unsafe { &_heap_size } as *const usize as usize;
+        let m_sheap = &raw mut _sheap as *mut _ as usize;
+        let m_heap_size = &raw const _heap_size as *const usize as usize;
         //interrupt should be enabled after calling init_heap()
         unsafe {
             H.add_to_heap(m_sheap, m_sheap + m_heap_size);

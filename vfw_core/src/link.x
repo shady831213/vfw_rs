@@ -43,19 +43,19 @@ SECTIONS
         *(.rel_lottery)
     } > REGION_INIT_BSS
 
-    .bss (NOLOAD) : ALIGN(4) {
+    .bss {{load_bss}} : ALIGN(4) {
         _sbss = .;
         *(.bss .bss.* .sbss .sbss.*)
         _ebss = .;
     } > REGION_BSS
 
-    .cpu.bss (NOLOAD) : ALIGN(4) {
+    .cpu.bss {{load_bss}} : ALIGN(4) {
         _s_cpu_bss = .;
         *(.cpu.bss .cpu.bss.*)
         _e_cpu_bss = .;
     } > REGION_CPU_BSS
 
-    .synced.bss (NOLOAD) : ALIGN(4) {
+    .synced.bss {{load_bss}} : ALIGN(4) {
         _s_synced_bss = .;
         *(.synced.bss .synced.bss.*)
         _e_synced_bss = .;

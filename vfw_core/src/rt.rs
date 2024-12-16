@@ -57,6 +57,7 @@ mod lottery {
 }
 
 #[inline(always)]
+#[cfg(not(feature = "load_bss"))]
 fn __init_bss(s: *mut u8, n: usize) {
     unsafe {
         for i in 0..n {
@@ -64,6 +65,9 @@ fn __init_bss(s: *mut u8, n: usize) {
         }
     };
 }
+
+#[cfg(feature = "load_bss")]
+fn __init_bss(_s: *mut u8, _n: usize) {}
 
 #[inline(always)]
 fn init_bss() {

@@ -22,6 +22,7 @@ vfw_build_utils.workspace = true
 serde = {version = "1", features = ["derive"]}
 
 [features]
+load_bss = []
 cpu_data_non_priv = []
 stack_non_priv = []
 max_cores_1 = []

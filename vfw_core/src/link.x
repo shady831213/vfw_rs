@@ -17,6 +17,7 @@ SECTIONS
     .text : ALIGN(4) {
         _stext = .;
         *(.text .text.*)
+        . = ALIGN(4);
         _etext = .;
     } > REGION_TEXT AT>REGION_TEXT_LOAD
     PROVIDE(_stext_load = LOADADDR(.text));
@@ -70,6 +71,7 @@ SECTIONS
         PROVIDE(__global_pointer$ = . + 0x800);
         *(.sdata .sdata.* .sdata2 .sdata2.*);
         *(.data .data.*)
+        . = ALIGN(4);
         _edata = .;
     } > REGION_DATA AT>REGION_DATA_LOAD
     PROVIDE(_sdata_load = LOADADDR(.data));
@@ -77,6 +79,7 @@ SECTIONS
     .synced.data : ALIGN(4) {
         _s_synced_data = .;
         *(.synced.data .synced.data.*)
+        . = ALIGN(4);
         _e_synced_data = .;
     } > REGION_SYNCED_DATA AT>REGION_SYNCED_DATA_LOAD
     PROVIDE(_s_synced_data_load = LOADADDR(.synced.data));
@@ -84,6 +87,7 @@ SECTIONS
     .cpu.data : ALIGN(4) {
         _s_cpu_data = .;
         *(.cpu.data .cpu.data.*)
+        . = ALIGN(4);
         _e_cpu_data = .;
     } > REGION_CPU_DATA AT>REGION_CPU_DATA_LOAD
     PROVIDE(_s_cpu_data_load = LOADADDR(.cpu.data));

@@ -9,7 +9,8 @@ use crate::{Stack, VfwStack};
 use core::ptr::NonNull;
 
 //sections must be always 4 bytes aligned!!!
-#[inline(always)]
+#[inline(never)]
+#[link_section = ".init.rust"]
 unsafe fn _sec_reloc(start: usize, end: usize, load_start: usize) {
     let size = (((end + 3) >> 2) << 2) - start;
     if size > 0 && start != load_start {

@@ -11,8 +11,8 @@ unsafe impl<T: Send> Send for HsmCell<T> {}
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[repr(usize)]
 pub enum HsmState {
-    Stopped = 0,
-    Started,
+    Started = 0,
+    Stopped,
     StartPending,
     StopPending,
     Suspended,
@@ -25,8 +25,8 @@ impl core::convert::TryFrom<usize> for HsmState {
     type Error = usize;
     fn try_from(value: usize) -> Result<Self, Self::Error> {
         match value {
-            0 => Ok(HsmState::Stopped),
-            1 => Ok(HsmState::Started),
+            0 => Ok(HsmState::Started),
+            1 => Ok(HsmState::Stopped),
             2 => Ok(HsmState::StartPending),
             3 => Ok(HsmState::StopPending),
             4 => Ok(HsmState::Suspended),

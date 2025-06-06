@@ -107,6 +107,15 @@ fn init_cpu_bss() {
 }
 
 #[inline(always)]
+fn reset_ctxs() {
+    unsafe {
+        for c in CPU_CTXS {
+            c.reset()
+        }
+    }
+}
+
+#[inline(always)]
 #[link_section = ".init.rust"]
 pub(crate) fn vfw_relocation() {
     __pre_init();
@@ -132,6 +141,7 @@ pub(crate) fn vfw_relocation() {
                     sec_reloc!(_s_cpu_data, _e_cpu_data, _s_cpu_data_load);
                     init_cpu_bss();
                     init_bss();
+                    reset_ctxs();
                     lottery::REL_LOTTARY.store(lottery::REL_DONE, Ordering::Release);
                     break;
                 }
@@ -167,6 +177,7 @@ pub(crate) fn vfw_relocation() {
         sec_reloc!(_s_cpu_data, _e_cpu_data, _s_cpu_data_load);
         init_cpu_bss();
         init_bss();
+        reset_ctxs();
     }
 }
 
@@ -317,13 +328,19 @@ impl HartContext {
         }
     }
 
+    fn reset(&mut self) {
+        self.trap = FlowContext::ZERO;
+        self.hsm = HsmCell::new();
+        self.current = TaskId::new(0, 0);
+    }
+
     #[inline]
     pub(crate) fn context_ptr(&mut self) -> NonNull<FlowContext> {
         unsafe { NonNull::new_unchecked(&mut self.trap) }
     }
 }
 
-#[link_section = ".synced.bss"]
+#[link_section = ".synced.data"]
 static mut CPU_CTXS: [HartContext; MAX_CORES] = [const { HartContext::new() }; MAX_CORES];
 
 #[inline(always)]

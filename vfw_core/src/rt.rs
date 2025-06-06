@@ -107,9 +107,10 @@ fn init_cpu_bss() {
 }
 
 #[inline(always)]
+#[allow(static_mut_refs)]
 fn reset_ctxs() {
     unsafe {
-        for c in CPU_CTXS.iter_mut() {
+        for c in &mut CPU_CTXS {
             c.reset()
         }
     }
@@ -327,11 +328,9 @@ impl HartContext {
             current: TaskId::new(0, 0),
         }
     }
-
+    #[inline(always)]
     fn reset(&mut self) {
-        self.trap = FlowContext::ZERO;
         self.hsm = HsmCell::new();
-        self.current = TaskId::new(0, 0);
     }
 
     #[inline]

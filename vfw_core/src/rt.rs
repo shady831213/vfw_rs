@@ -109,7 +109,7 @@ fn init_cpu_bss() {
 #[inline(always)]
 fn reset_ctxs() {
     unsafe {
-        for c in CPU_CTXS {
+        for mut c in CPU_CTXS {
             c.reset()
         }
     }

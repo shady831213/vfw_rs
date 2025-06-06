@@ -53,8 +53,8 @@ mod lottery {
 
     use core::sync::atomic::AtomicUsize;
 
-    #[link_section = ".rel_lottary"]
-    pub(super) static REL_LOTTARY: AtomicUsize = AtomicUsize::new(REL_INIT);
+    #[link_section = ".rel_lottery"]
+    pub(super) static REL_LOTTERY: AtomicUsize = AtomicUsize::new(REL_INIT);
 }
 
 #[inline(always)]
@@ -107,16 +107,6 @@ fn init_cpu_bss() {
 }
 
 #[inline(always)]
-#[allow(static_mut_refs)]
-fn reset_ctxs() {
-    unsafe {
-        for c in &mut CPU_CTXS {
-            c.reset()
-        }
-    }
-}
-
-#[inline(always)]
 #[link_section = ".init.rust"]
 pub(crate) fn vfw_relocation() {
     __pre_init();
@@ -133,7 +123,7 @@ pub(crate) fn vfw_relocation() {
         use core::hint::spin_loop;
         use core::sync::atomic::Ordering;
         loop {
-            match lottery::REL_LOTTARY.compare_exchange(0, 1, Ordering::AcqRel, Ordering::Relaxed) {
+            match lottery::REL_LOTTERY.compare_exchange(0, 1, Ordering::AcqRel, Ordering::Relaxed) {
                 Ok(_) => {
                     sec_reloc!(_srodata, _erodata, _srodata_load);
                     sec_reloc!(_stext, _etext, _stext_load);
@@ -142,8 +132,7 @@ pub(crate) fn vfw_relocation() {
                     sec_reloc!(_s_cpu_data, _e_cpu_data, _s_cpu_data_load);
                     init_cpu_bss();
                     init_bss();
-                    reset_ctxs();
-                    lottery::REL_LOTTARY.store(lottery::REL_DONE, Ordering::Release);
+                    lottery::REL_LOTTERY.store(lottery::REL_DONE, Ordering::Release);
                     break;
                 }
                 Err(s) => match s {
@@ -156,7 +145,7 @@ pub(crate) fn vfw_relocation() {
                         }
                         break;
                     }
-                    _ => lottery::REL_LOTTARY.store(lottery::REL_INIT, Ordering::Release),
+                    _ => lottery::REL_LOTTERY.store(lottery::REL_INIT, Ordering::Release),
                 },
             }
         }
@@ -178,7 +167,6 @@ pub(crate) fn vfw_relocation() {
         sec_reloc!(_s_cpu_data, _e_cpu_data, _s_cpu_data_load);
         init_cpu_bss();
         init_bss();
-        reset_ctxs();
     }
 }
 
@@ -328,11 +316,6 @@ impl HartContext {
             current: TaskId::new(0, 0),
         }
     }
-    #[inline(always)]
-    fn reset(&mut self) {
-        self.hsm = HsmCell::new();
-        self.current = TaskId::new(0, 0);
-    }
 
     #[inline]
     pub(crate) fn context_ptr(&mut self) -> NonNull<FlowContext> {
@@ -340,7 +323,7 @@ impl HartContext {
     }
 }
 
-#[link_section = ".synced.data"]
+#[link_section = ".synced.bss"]
 static mut CPU_CTXS: [HartContext; MAX_CORES] = [const { HartContext::new() }; MAX_CORES];
 
 #[inline(always)]

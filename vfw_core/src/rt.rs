@@ -331,6 +331,7 @@ impl HartContext {
     #[inline(always)]
     fn reset(&mut self) {
         self.hsm = HsmCell::new();
+        self.current = TaskId::new(0, 0);
     }
 
     #[inline]

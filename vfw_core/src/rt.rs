@@ -323,7 +323,7 @@ impl HartContext {
     }
 }
 
-#[link_section = ".synced.data"]
+#[link_section = ".synced.bss"]
 static mut CPU_CTXS: [HartContext; MAX_CORES] = [const { HartContext::new() }; MAX_CORES];
 
 #[inline(always)]

@@ -11,8 +11,8 @@ unsafe impl<T: Send> Send for HsmCell<T> {}
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[repr(usize)]
 pub enum HsmState {
-    Started = 0,
-    Stopped,
+    Stopped = 0,
+    Started,
     StartPending,
     StopPending,
     Suspended,

@@ -25,8 +25,8 @@ impl core::convert::TryFrom<usize> for HsmState {
     type Error = usize;
     fn try_from(value: usize) -> Result<Self, Self::Error> {
         match value {
-            0 => Ok(HsmState::Started),
-            1 => Ok(HsmState::Stopped),
+            0 => Ok(HsmState::Stopped),
+            1 => Ok(HsmState::Started),
             2 => Ok(HsmState::StartPending),
             3 => Ok(HsmState::StopPending),
             4 => Ok(HsmState::Suspended),

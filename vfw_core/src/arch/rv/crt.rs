@@ -85,7 +85,7 @@ unsafe extern "C" fn _start() {
     fence.i
     ",
     "
-    j {vfw_start}
+    call {vfw_start}
     ",
         abort = sym abort,
         relocation = sym crate::vfw_relocation,

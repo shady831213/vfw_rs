@@ -12,7 +12,8 @@ SECTIONS
         _sgot = .;
         *(.got .got.*);
         _egot = .;
-    } > REGION_GOT
+    } > REGION_GOT AT>REGION_GOT_LOAD
+    PROVIDE(_sgot_load = LOADADDR(.got));
 
     .text : ALIGN(4) {
         _stext = .;

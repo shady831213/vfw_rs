@@ -106,6 +106,7 @@ fn init_cpu_bss() {
     }
 }
 
+//after we are done with got, pic can work
 #[inline(always)]
 #[link_section = ".init.rust"]
 pub(crate) fn vfw_relocation() {
@@ -125,6 +126,7 @@ pub(crate) fn vfw_relocation() {
         loop {
             match lottery::REL_LOTTERY.compare_exchange(0, 1, Ordering::AcqRel, Ordering::Relaxed) {
                 Ok(_) => {
+                    arch::reloc_got();
                     sec_reloc!(_srodata, _erodata, _srodata_load);
                     sec_reloc!(_stext, _etext, _stext_load);
                     sec_reloc!(_sdata, _edata, _sdata_load);
@@ -160,6 +162,7 @@ pub(crate) fn vfw_relocation() {
         feature = "max_cores_2"
     )))]
     {
+        arch::reloc_got();
         sec_reloc!(_srodata, _erodata, _srodata_load);
         sec_reloc!(_stext, _etext, _stext_load);
         sec_reloc!(_sdata, _edata, _sdata_load);

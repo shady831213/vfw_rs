@@ -1,4 +1,5 @@
 use crate::Task;
+use crate::{fill_usize, load_usize};
 use riscv::register::{mhartid, mstatus};
 
 pub(crate) fn hartid() -> usize {
@@ -36,6 +37,47 @@ pub(crate) fn boot(task: &Task) {
         clobber_abi("C"),);
     }
 }
+
+#[link_section = ".init"]
+pub(crate) fn reloc_got() {
+    unsafe {
+        core::arch::asm!(
+            "
+            .option push
+            .option norelax
+            .option nopic
+            ",
+            load_usize!(t0, sgot_symbol),
+            load_usize!(t1, sgot_load_symbol),
+            "
+            beq t0, t1, 2f
+            ",
+            load_usize!(t2, egot_symbol),
+            "
+            beq t0, t2, 2f
+            1:
+            lw t3, 0(t1)
+            sw t3, 0(t0)
+            addi t1, t1, 4
+            addi t0, t0, 4
+            bltu t0, t2, 1b
+            2:
+            .option pop
+        ",
+            clobber_abi("C"),
+        )
+    }
+}
+
+core::arch::global_asm!(
+    "
+    .section .init.got
+    .align 3
+    ",
+    fill_usize!(sgot_symbol, _sgot),
+    fill_usize!(egot_symbol, _egot),
+    fill_usize!(sgot_load_symbol, _sgot_load),
+);
 
 #[inline]
 pub(crate) fn exchange_scratch(mut val: usize) -> usize {

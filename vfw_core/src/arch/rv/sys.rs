@@ -60,6 +60,38 @@ macro_rules! get_sp {
     }
 }
 
+#[cfg(target_pointer_width = "32")]
+mod usize_access {
+    #[macro_export]
+    macro_rules! load_usize {
+        ($reg:expr, $tag:expr) => {
+            concat!("lw ", stringify!($reg), ", ", stringify!($tag),)
+        };
+    }
+    #[macro_export]
+    macro_rules! fill_usize {
+        ($tag:expr, $symbol:expr) => {
+            concat!(stringify!($tag), ": ", ".word ", stringify!($symbol))
+        };
+    }
+}
+
+#[cfg(target_pointer_width = "64")]
+mod usize_access {
+    #[macro_export]
+    macro_rules! load_usize {
+        ($reg:expr, $tag:expr) => {
+            concat!("ld ", stringify!($reg), ", ", stringify!($tag),)
+        };
+    }
+    #[macro_export]
+    macro_rules! fill_usize {
+        ($tag:expr, $symbol:expr) => {
+            concat!(stringify!($tag), ": ", ".dword ", stringify!($symbol))
+        };
+    }
+}
+
 #[macro_export]
 macro_rules! get_tp {
     () => {

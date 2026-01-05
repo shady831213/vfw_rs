@@ -1,11 +1,10 @@
+use crate::{fill_usize, load_usize};
 #[cfg(not(feature = "stack_non_priv"))]
 #[macro_use]
 mod stack_init {
     macro_rules! laod_sp {
         () => {
-            "
-        la  sp, _sstack
-        "
+            load_usize!(sp, sstack_symbol)
         };
     }
 }
@@ -14,10 +13,9 @@ mod stack_init {
 mod stack_init {
     macro_rules! laod_sp {
         () => {
+            load_usize!(sp, estack_symbol),
+            load_usize!(t0, stack_size_symbol),
             "
-            la  sp, _estack
-            lui t0, %hi(_stack_size)
-            addi t0, t0, %lo(_stack_size)
             csrr t1, mhartid
             addi t1, t1,  1
         1:  add  sp, sp, t0
@@ -71,11 +69,11 @@ unsafe extern "C" fn _start() {
         li  x31,0
         .option push
         .option norelax
+        .option nopic
         la t0, {abort}
         csrw mtvec, t0
-        la  gp, __global_pointer$
-        .option pop
     ",
+    load_usize!(gp, gp_symbol),
     laod_sp!(),
     "
     call {move_stack}
@@ -84,19 +82,30 @@ unsafe extern "C" fn _start() {
     call {relocation}
     fence.i
     ",
+    load_usize!(ra, 1f),
     "
-    .option push
-    .option norelax
-    la ra, {vfw_start}
-    jr ra
     .option pop
+    jr ra
+    .align 3
     ",
+    fill_usize!(1, "{vfw_start}"),
         abort = sym abort,
         relocation = sym crate::vfw_relocation,
         move_stack          =   sym crate::arch::reuse_stack_for_trap,
         vfw_start = sym crate::vfw_start
     )
 }
+
+core::arch::global_asm!(
+    "
+    .section .init.got
+    .align 3
+    ",
+    fill_usize!(gp_symbol, "__global_pointer$"),
+    fill_usize!(sstack_symbol, _sstack),
+    fill_usize!(estack_symbol, _estack),
+    fill_usize!(stack_size_symbol, _stack_size),
+);
 
 #[naked]
 #[link_section = ".init.abort"]

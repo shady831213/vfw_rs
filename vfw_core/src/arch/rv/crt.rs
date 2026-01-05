@@ -4,7 +4,8 @@ mod stack_init {
     macro_rules! laod_sp {
         () => {
             "
-        la  sp, _sstack
+            lui sp, %hi(_sstack)
+            addi sp, sp, %lo(_sstack)
         "
         };
     }
@@ -15,7 +16,8 @@ mod stack_init {
     macro_rules! laod_sp {
         () => {
             "
-            la  sp, _estack
+            lui sp, %hi(_estack)
+            addi sp, sp, %lo(_estack)
             lui t0, %hi(_stack_size)
             addi t0, t0, %lo(_stack_size)
             csrr t1, mhartid
@@ -71,10 +73,10 @@ unsafe extern "C" fn _start() {
         li  x31,0
         .option push
         .option norelax
+        .option nopic
         la t0, {abort}
         csrw mtvec, t0
         la  gp, __global_pointer$
-        .option pop
     ",
     laod_sp!(),
     "
@@ -85,8 +87,6 @@ unsafe extern "C" fn _start() {
     fence.i
     ",
     "
-    .option push
-    .option norelax
     la ra, {vfw_start}
     jr ra
     .option pop

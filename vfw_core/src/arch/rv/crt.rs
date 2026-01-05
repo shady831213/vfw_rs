@@ -2,7 +2,7 @@ use crate::{fill_usize, load_usize};
 #[cfg(not(feature = "stack_non_priv"))]
 #[macro_use]
 mod stack_init {
-    macro_rules! laod_sp {
+    macro_rules! load_sp {
         () => {
             load_usize!(sp, sstack_symbol)
         };
@@ -11,17 +11,21 @@ mod stack_init {
 #[cfg(feature = "stack_non_priv")]
 #[macro_use]
 mod stack_init {
-    macro_rules! laod_sp {
+    macro_rules! load_sp {
         () => {
-            load_usize!(sp, estack_symbol),
-            load_usize!(t0, stack_size_symbol),
-            "
+            concat!(
+                load_usize!(sp, estack_symbol),
+                "
+                ",
+                load_usize!(t0, stack_size_symbol),
+                "
             csrr t1, mhartid
             addi t1, t1,  1
         1:  add  sp, sp, t0
             addi t1, t1, -1
             bnez t1, 1b
             "
+            )
         };
     }
 }
@@ -74,7 +78,7 @@ unsafe extern "C" fn _start() {
         csrw mtvec, t0
     ",
     load_usize!(gp, gp_symbol),
-    laod_sp!(),
+    load_sp!(),
     "
     call {move_stack}
     ",

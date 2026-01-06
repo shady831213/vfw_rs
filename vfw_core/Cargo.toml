@@ -25,6 +25,8 @@ serde = {version = "1", features = ["derive"]}
 load_bss = []
 cpu_data_non_priv = []
 stack_non_priv = []
+# handling multicores sync in early init stage
+multicores_init = []
 max_cores_1 = []
 max_cores_2 = []
 max_cores_4 = []

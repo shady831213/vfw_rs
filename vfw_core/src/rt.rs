@@ -37,67 +37,31 @@ macro_rules! sec_reloc {
     };
 }
 
-#[cfg(all(
-    any(
-        feature = "max_cores_128",
-        feature = "max_cores_64",
-        feature = "max_cores_32",
-        feature = "max_cores_16",
-        feature = "max_cores_8",
-        feature = "max_cores_4",
-        feature = "max_cores_2"
-    ),
-    feature = "multicores_init"
+#[cfg(any(
+    feature = "max_cores_128",
+    feature = "max_cores_64",
+    feature = "max_cores_32",
+    feature = "max_cores_16",
+    feature = "max_cores_8",
+    feature = "max_cores_4",
+    feature = "max_cores_2"
 ))]
 mod lottery {
-    use core::sync::atomic::AtomicBool;
-    use core::sync::atomic::Ordering;
+    pub(super) use core::sync::atomic::AtomicUsize;
+    pub(super) use core::sync::atomic::Ordering;
+
+    #[cfg(feature = "multicores_init")]
+    mod lottery_core {
+        use core::sync::atomic::AtomicUsize;
+        #[link_section = ".rel_lottery"]
+        pub static REL_LOTTERY_CORE: AtomicUsize = AtomicUsize::new(0);
+    }
+
+    #[cfg(feature = "multicores_init")]
+    pub(super) use lottery_core::*;
 
     #[link_section = ".rel_lottery"]
-    static REL_INIT_ACK: [AtomicBool; super::MAX_CORES] =
-        [const { AtomicBool::new(false) }; super::MAX_CORES];
-
-    //must be called by all cores
-    #[inline(always)]
-    pub(super) fn init() {
-        REL_INIT_ACK[super::hartid()].store(false, Ordering::Release);
-        for i in 0..super::init_num_cores() {
-            loop {
-                if !REL_INIT_ACK[i].load(Ordering::Acquire) {
-                    break;
-                }
-            }
-        }
-    }
-
-    //must be called by core 0
-    #[inline(always)]
-    pub(super) fn done() {
-        for i in 1..super::init_num_cores() {
-            loop {
-                if REL_INIT_ACK[i].load(Ordering::Acquire) {
-                    break;
-                }
-            }
-        }
-        REL_INIT_ACK[0].store(true, Ordering::Release);
-    }
-
-    //must be called by other cores
-    #[inline(always)]
-    pub(super) fn init_ack() {
-        REL_INIT_ACK[super::hartid()].store(true, Ordering::Release);
-    }
-
-    //must be called by other cores
-    #[inline(always)]
-    pub(super) fn done_ack() {
-        loop {
-            if REL_INIT_ACK[0].load(Ordering::Acquire) {
-                break;
-            }
-        }
-    }
+    pub(super) static REL_WINNER_CORE: AtomicUsize = AtomicUsize::new(0);
 }
 
 #[inline(always)]
@@ -149,14 +113,76 @@ fn init_cpu_bss() {
     }
 }
 
-#[inline(always)]
-fn init_num_cores() -> usize {
-    extern "C" {
-        static num_cores_symbol: *const usize;
-    }
-    unsafe { *num_cores_symbol }
+//inline never to keep got access after regloc_got
+#[inline(never)]
+#[link_section = ".init.rust"]
+fn winner_init_job() {
+    sec_reloc!(_srodata, _erodata, _srodata_load);
+    sec_reloc!(_stext, _etext, _stext_load);
+    sec_reloc!(_sdata, _edata, _sdata_load);
+    sec_reloc!(_s_synced_data, _e_synced_data, _s_synced_data_load);
+    init_bss();
+    sec_reloc!(_s_cpu_data, _e_cpu_data, _s_cpu_data_load);
+    init_cpu_bss();
 }
 
+#[link_section = ".init.rust"]
+fn winner_init() {
+    #[cfg(feature = "multicores_init")]
+    {
+        if lottery::REL_LOTTERY_CORE.load(lottery::Ordering::Acquire) % arch::init_num_cores()
+            == hartid()
+        {
+            arch::reloc_got();
+            winner_init_job();
+            lottery::REL_LOTTERY_CORE.store(
+                (hartid() + 1) % arch::init_num_cores(),
+                lottery::Ordering::Release,
+            );
+            lottery::REL_WINNER_CORE.store(hartid(), lottery::Ordering::Release);
+        }
+    }
+    //if single core init, first core do this job natrually
+    #[cfg(not(feature = "multicores_init"))]
+    {
+        arch::reloc_got();
+        winner_init_job();
+        lottery::REL_WINNER_CORE.store(hartid(), lottery::Ordering::Release);
+    }
+}
+
+#[link_section = ".init.rust"]
+fn loser_init_job() {
+    #[cfg(not(feature = "cpu_data_non_priv"))]
+    {
+        sec_reloc!(_s_cpu_data, _e_cpu_data, _s_cpu_data_load);
+        init_cpu_bss();
+    }
+}
+
+#[link_section = ".init.rust"]
+fn losers_init() {
+    #[cfg(feature = "multicores_init")]
+    {
+        loop {
+            let cur_core = lottery::REL_LOTTERY_CORE.load(lottery::Ordering::Acquire) % num_cores();
+            if cur_core == hartid() {
+                if lottery::REL_WINNER_CORE.load(lottery::Ordering::Acquire) != hartid() {
+                    loser_init_job();
+                    lottery::REL_LOTTERY_CORE
+                        .store((hartid() + 1) % num_cores(), lottery::Ordering::Release);
+                }
+                break;
+            }
+        }
+    }
+    #[cfg(not(feature = "multicores_init"))]
+    {
+        if lottery::REL_WINNER_CORE.load(lottery::Ordering::Acquire) != hartid() {
+            loser_init_job();
+        }
+    }
+}
 //after we are done with got, pic can work
 #[inline(always)]
 #[link_section = ".init.rust"]
@@ -172,32 +198,8 @@ pub(crate) fn vfw_relocation() {
         feature = "max_cores_2"
     ))]
     {
-        #[cfg(feature = "multicores_init")]
-        lottery::init();
-        //because noone init REL_STATE, we must handle this.
-        if hartid() == 0 {
-            arch::reloc_got();
-            sec_reloc!(_srodata, _erodata, _srodata_load);
-            sec_reloc!(_stext, _etext, _stext_load);
-            sec_reloc!(_sdata, _edata, _sdata_load);
-            sec_reloc!(_s_synced_data, _e_synced_data, _s_synced_data_load);
-            sec_reloc!(_s_cpu_data, _e_cpu_data, _s_cpu_data_load);
-            init_cpu_bss();
-            init_bss();
-            #[cfg(feature = "multicores_init")]
-            lottery::done();
-        } else {
-            #[cfg(feature = "multicores_init")]
-            {
-                lottery::init_ack();
-                lottery::done_ack();
-            }
-            #[cfg(not(feature = "cpu_data_non_priv"))]
-            {
-                sec_reloc!(_s_cpu_data, _e_cpu_data, _s_cpu_data_load);
-                init_cpu_bss();
-            }
-        }
+        winner_init();
+        losers_init();
     }
     #[cfg(not(any(
         feature = "max_cores_128",
@@ -210,13 +212,7 @@ pub(crate) fn vfw_relocation() {
     )))]
     {
         arch::reloc_got();
-        sec_reloc!(_srodata, _erodata, _srodata_load);
-        sec_reloc!(_stext, _etext, _stext_load);
-        sec_reloc!(_sdata, _edata, _sdata_load);
-        sec_reloc!(_s_synced_data, _e_synced_data, _s_synced_data_load);
-        sec_reloc!(_s_cpu_data, _e_cpu_data, _s_cpu_data_load);
-        init_cpu_bss();
-        init_bss();
+        winner_init_job();
     }
 }
 

@@ -69,6 +69,28 @@ pub(crate) fn reloc_got() {
     }
 }
 
+#[allow(dead_code)]
+#[link_section = ".init"]
+pub(crate) fn init_num_cores() -> usize {
+    unsafe {
+        let r: u32;
+        core::arch::asm!(
+            "
+            .option push
+            .option norelax
+            .option nopic
+            ",
+            load_usize!(t0, num_cores_symbol),
+            "
+            .option pop
+            ",
+            out("t0") r,
+            clobber_abi("C"),
+        );
+        r as _
+    }
+}
+
 core::arch::global_asm!(
     "
     .section .init.got

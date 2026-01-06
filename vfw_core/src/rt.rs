@@ -50,37 +50,20 @@ macro_rules! sec_reloc {
     feature = "multicores_init"
 ))]
 mod lottery {
-    const REL_INIT: usize = 0;
-    const REL_DONE: usize = 1;
-    use core::sync::atomic::AtomicUsize;
+    use core::sync::atomic::AtomicBool;
     use core::sync::atomic::Ordering;
 
     #[link_section = ".rel_lottery"]
-    static REL_STATE: AtomicUsize = AtomicUsize::new(REL_INIT);
-    #[link_section = ".rel_lottery"]
-    static REL_INIT_ACK: AtomicUsize = AtomicUsize::new(0);
+    static REL_INIT_ACK: [AtomicBool; super::MAX_CORES] =
+        [const { AtomicBool::new(false) }; super::MAX_CORES];
 
-    //must be called by core 0
+    //must be called by all cores
     #[inline(always)]
     pub(super) fn init() {
-        REL_STATE.store(REL_INIT, Ordering::Release);
-        REL_INIT_ACK.store(1, Ordering::Release);
-    }
-
-    //must be called by other cores
-    #[inline(always)]
-    pub(super) fn init_ack() {
-        loop {
-            if REL_STATE.load(Ordering::Relaxed) == REL_INIT {
-                if REL_INIT_ACK
-                    .compare_exchange(
-                        super::hartid(),
-                        super::hartid() + 1,
-                        Ordering::AcqRel,
-                        Ordering::Relaxed,
-                    )
-                    .is_ok()
-                {
+        REL_INIT_ACK[super::hartid()].store(false, Ordering::Release);
+        for i in 0..super::init_num_cores() {
+            loop {
+                if !REL_INIT_ACK[i].load(Ordering::Acquire) {
                     break;
                 }
             }
@@ -90,21 +73,27 @@ mod lottery {
     //must be called by core 0
     #[inline(always)]
     pub(super) fn done() {
-        loop {
-            // got relocation done, num_cores() worked
-            if REL_INIT_ACK.load(Ordering::Relaxed) == super::num_cores() {
-                REL_STATE.store(REL_DONE, Ordering::Release);
-                break;
+        for i in 1..super::init_num_cores() {
+            loop {
+                if REL_INIT_ACK[i].load(Ordering::Acquire) {
+                    break;
+                }
             }
         }
+        REL_INIT_ACK[0].store(true, Ordering::Release);
+    }
+
+    //must be called by other cores
+    #[inline(always)]
+    pub(super) fn init_ack() {
+        REL_INIT_ACK[super::hartid()].store(true, Ordering::Release);
     }
 
     //must be called by other cores
     #[inline(always)]
     pub(super) fn done_ack() {
         loop {
-            // got init done, num_cores() worked
-            if REL_STATE.load(Ordering::Relaxed) == REL_DONE {
+            if REL_INIT_ACK[0].load(Ordering::Acquire) {
                 break;
             }
         }
@@ -160,6 +149,14 @@ fn init_cpu_bss() {
     }
 }
 
+#[inline(always)]
+fn init_num_cores() -> usize {
+    extern "C" {
+        static num_cores_symbol: *const usize;
+    }
+    unsafe { *num_cores_symbol }
+}
+
 //after we are done with got, pic can work
 #[inline(always)]
 #[link_section = ".init.rust"]
@@ -175,10 +172,10 @@ pub(crate) fn vfw_relocation() {
         feature = "max_cores_2"
     ))]
     {
+        #[cfg(feature = "multicores_init")]
+        lottery::init();
         //because noone init REL_STATE, we must handle this.
         if hartid() == 0 {
-            #[cfg(feature = "multicores_init")]
-            lottery::init();
             arch::reloc_got();
             sec_reloc!(_srodata, _erodata, _srodata_load);
             sec_reloc!(_stext, _etext, _stext_load);

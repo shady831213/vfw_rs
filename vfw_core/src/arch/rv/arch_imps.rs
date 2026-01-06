@@ -77,6 +77,7 @@ core::arch::global_asm!(
     fill_usize!(sgot_symbol, _sgot),
     fill_usize!(egot_symbol, _egot),
     fill_usize!(sgot_load_symbol, _sgot_load),
+    fill_usize!(num_cores_symbol, _num_cores),
 );
 
 #[inline]

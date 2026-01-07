@@ -119,6 +119,15 @@ fn winner_init_job() {
     init_cpu_bss();
 }
 
+#[cfg(any(
+    feature = "max_cores_128",
+    feature = "max_cores_64",
+    feature = "max_cores_32",
+    feature = "max_cores_16",
+    feature = "max_cores_8",
+    feature = "max_cores_4",
+    feature = "max_cores_2"
+))]
 #[link_section = ".init.rust"]
 fn winner_init() {
     #[cfg(feature = "multicores_init")]
@@ -144,6 +153,15 @@ fn winner_init() {
     }
 }
 
+#[cfg(any(
+    feature = "max_cores_128",
+    feature = "max_cores_64",
+    feature = "max_cores_32",
+    feature = "max_cores_16",
+    feature = "max_cores_8",
+    feature = "max_cores_4",
+    feature = "max_cores_2"
+))]
 #[link_section = ".init.rust"]
 fn loser_init_job() {
     #[cfg(not(feature = "cpu_data_non_priv"))]
@@ -153,6 +171,15 @@ fn loser_init_job() {
     }
 }
 
+#[cfg(any(
+    feature = "max_cores_128",
+    feature = "max_cores_64",
+    feature = "max_cores_32",
+    feature = "max_cores_16",
+    feature = "max_cores_8",
+    feature = "max_cores_4",
+    feature = "max_cores_2"
+))]
 #[link_section = ".init.rust"]
 fn losers_init() {
     #[cfg(feature = "multicores_init")]

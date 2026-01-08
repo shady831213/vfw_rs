@@ -30,28 +30,24 @@ macro_rules! sec_reloc {
     };
 }
 
-#[cfg(any(
-    feature = "max_cores_128",
-    feature = "max_cores_64",
-    feature = "max_cores_32",
-    feature = "max_cores_16",
-    feature = "max_cores_8",
-    feature = "max_cores_4",
-    feature = "max_cores_2"
+#[cfg(all(
+    any(
+        feature = "max_cores_128",
+        feature = "max_cores_64",
+        feature = "max_cores_32",
+        feature = "max_cores_16",
+        feature = "max_cores_8",
+        feature = "max_cores_4",
+        feature = "max_cores_2"
+    ),
+    feature = "multicores_init"
 ))]
 mod lottery {
     pub(super) use core::sync::atomic::AtomicUsize;
     pub(super) use core::sync::atomic::Ordering;
 
-    #[cfg(feature = "multicores_init")]
-    mod lottery_core {
-        use core::sync::atomic::AtomicUsize;
-        #[link_section = ".rel_lottery"]
-        pub static REL_LOTTERY_CORE: AtomicUsize = AtomicUsize::new(0);
-    }
-
-    #[cfg(feature = "multicores_init")]
-    pub(super) use lottery_core::*;
+    #[link_section = ".rel_lottery"]
+    pub static REL_LOTTERY_CORE: AtomicUsize = AtomicUsize::new(0);
 
     #[link_section = ".rel_lottery"]
     pub(super) static REL_WINNER_CORE: AtomicUsize = AtomicUsize::new(0);
@@ -144,12 +140,13 @@ fn winner_init() {
             lottery::REL_WINNER_CORE.store(hartid(), lottery::Ordering::Release);
         }
     }
-    //if single core init, first core do this job natrually
+    //if single core init, it must be hart 0, then hart 0 start other cores in boot_iinit(refer to rt.rs) after all global sys init done.
     #[cfg(not(feature = "multicores_init"))]
     {
-        arch::reloc_got();
-        winner_init_job();
-        lottery::REL_WINNER_CORE.store(hartid(), lottery::Ordering::Release);
+        if hartid() == 0 {
+            arch::reloc_got();
+            winner_init_job();
+        }
     }
 }
 
@@ -201,7 +198,7 @@ fn losers_init() {
     }
     #[cfg(not(feature = "multicores_init"))]
     {
-        if lottery::REL_WINNER_CORE.load(lottery::Ordering::Acquire) != hartid() {
+        if hartid() != 0 {
             loser_init_job();
         }
     }

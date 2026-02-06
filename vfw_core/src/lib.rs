@@ -2,7 +2,6 @@
 #![feature(alloc_error_handler)]
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
-#![feature(naked_functions)]
 #![feature(linkage)]
 extern crate alloc;
 pub extern crate paste;

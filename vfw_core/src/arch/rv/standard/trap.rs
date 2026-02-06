@@ -1,11 +1,11 @@
 use riscv::register::mtvec::{self, TrapMode};
 pub fn init_trap(mode: TrapMode) {
     unsafe {
-        mtvec::write(trap_vec as usize, mode);
+        mtvec::write(trap_vec as *const () as usize, mode);
     }
 }
 
-#[naked]
+#[unsafe(naked)]
 unsafe extern "C" fn trap_vec() {
     core::arch::naked_asm!(
         ".align 2",

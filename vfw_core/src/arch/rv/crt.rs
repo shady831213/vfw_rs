@@ -30,7 +30,7 @@ mod stack_init {
     }
 }
 
-#[naked]
+#[unsafe(naked)]
 #[no_mangle]
 #[link_section = ".init"]
 unsafe extern "C" fn _start() {
@@ -111,7 +111,7 @@ core::arch::global_asm!(
     fill_usize!(stack_size_symbol, _stack_size),
 );
 
-#[naked]
+#[unsafe(naked)]
 #[link_section = ".init.abort"]
 unsafe extern "C" fn abort() {
     core::arch::naked_asm!(

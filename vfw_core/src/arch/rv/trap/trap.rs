@@ -103,7 +103,7 @@ pub fn dummy_trap_handler() {}
 
 //tp in machine mode usually not used
 //we don't swap sp by default, if sp should be swapped, handle it in handler
-#[naked]
+#[unsafe(naked)]
 pub unsafe extern "C" fn trap_entry() {
     core::arch::naked_asm!(
         ".align 2",
@@ -221,7 +221,7 @@ impl FlowContext {
     };
 }
 
-#[naked]
+#[unsafe(naked)]
 #[link_section = ".init.trap"]
 pub unsafe extern "C" fn reuse_stack_for_trap() {
     const LAYOUT: Layout = Layout::new::<TrapContext>();

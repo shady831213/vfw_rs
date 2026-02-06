@@ -37,7 +37,6 @@ impl Stack for VfwStack {
 }
 
 #[no_mangle]
-#[inline(always)]
 pub extern "C" fn stack_start() -> usize {
     let m_sstack = &raw mut _sstack as *mut _ as usize;
     #[cfg(feature = "stack_non_priv")]
@@ -51,7 +50,6 @@ pub extern "C" fn stack_start() -> usize {
 }
 
 #[no_mangle]
-#[inline(always)]
 pub extern "C" fn stack_size() -> usize {
     let m_stack_size = &raw const _stack_size as *const usize as usize;
     m_stack_size

@@ -31,7 +31,7 @@ pub(crate) fn vfw_start() {
         unsafe {
             __boot_core_init();
         }
-        main_thread(0, vfw_main as usize, &[]);
+        main_thread(0, vfw_main as *const () as usize, &[]);
     }
     thread_loop();
 }

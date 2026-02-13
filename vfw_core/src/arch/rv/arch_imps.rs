@@ -2,10 +2,12 @@ use crate::Task;
 use crate::{fill_usize, load_usize};
 use riscv::register::{mhartid, mstatus};
 
+#[inline(always)]
 pub(crate) fn hartid() -> usize {
     mhartid::read()
 }
 
+#[inline(always)]
 pub(crate) fn save_flag() -> usize {
     unsafe {
         let flag = mstatus::read().mie() as usize;
@@ -14,6 +16,7 @@ pub(crate) fn save_flag() -> usize {
     }
 }
 
+#[inline(always)]
 pub(crate) fn restore_flag(flag: usize) {
     unsafe {
         if flag != 0 {
@@ -94,6 +97,10 @@ pub(crate) fn init_num_cores() -> usize {
 core::arch::global_asm!(
     "
     .section .init.got
+    .global sgot_symbol
+    .global egot_symbol
+    .global sgot_load_symbol
+    .global num_cores_symbol
     .align 3
     ",
     fill_usize!(sgot_symbol, _sgot),
@@ -103,6 +110,7 @@ core::arch::global_asm!(
 );
 
 #[inline]
+#[coverage(off)]
 pub(crate) fn exchange_scratch(mut val: usize) -> usize {
     unsafe { core::arch::asm!("csrrw {0}, mscratch, {0}", inlateout(reg) val) };
     val

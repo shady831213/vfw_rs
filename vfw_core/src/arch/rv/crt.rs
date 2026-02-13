@@ -103,6 +103,10 @@ unsafe extern "C" fn _start() {
 core::arch::global_asm!(
     "
     .section .init.got
+    .global gp_symbol
+    .global sstack_symbol
+    .global estack_symbol
+    .global stack_size_symbol
     .align 3
     ",
     fill_usize!(gp_symbol, "__global_pointer$"),

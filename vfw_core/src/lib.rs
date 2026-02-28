@@ -3,7 +3,6 @@
 #![allow(incomplete_features)]
 #![feature(generic_const_exprs)]
 #![feature(linkage)]
-#![feature(coverage_attribute)]
 extern crate alloc;
 pub extern crate paste;
 pub mod arch;

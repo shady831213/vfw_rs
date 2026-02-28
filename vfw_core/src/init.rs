@@ -4,7 +4,6 @@ use arch::hartid;
 //sections must be always 4 bytes aligned!!!
 #[inline(never)]
 #[link_section = ".init.rust"]
-#[coverage(off)]
 unsafe fn _sec_reloc(start: usize, end: usize, load_start: usize) {
     let size = (((end + 3) >> 2) << 2) - start;
     if size > 0 && start != load_start {
@@ -68,7 +67,6 @@ fn __init_bss(s: *mut u8, n: usize) {
 fn __init_bss(_s: *mut u8, _n: usize) {}
 
 #[inline(always)]
-#[coverage(off)]
 fn init_bss() {
     extern "C" {
         static mut _sbss: u8;
@@ -91,7 +89,6 @@ fn init_bss() {
 }
 
 #[inline(always)]
-#[coverage(off)]
 fn init_cpu_bss() {
     extern "C" {
         static mut _s_cpu_bss: u8;
@@ -108,7 +105,6 @@ fn init_cpu_bss() {
 //inline never to keep got access after regloc_got
 #[inline(never)]
 #[link_section = ".init.rust"]
-#[coverage(off)]
 fn winner_init_job() {
     sec_reloc!(_srodata, _erodata, _srodata_load);
     sec_reloc!(_stext, _etext, _stext_load);
@@ -129,7 +125,6 @@ fn winner_init_job() {
     feature = "max_cores_2"
 ))]
 #[link_section = ".init.rust"]
-#[coverage(off)]
 #[inline(always)]
 fn winner_init() {
     #[cfg(feature = "multicores_init")]
@@ -167,7 +162,6 @@ fn winner_init() {
 ))]
 #[inline(never)]
 #[link_section = ".init.rust"]
-#[coverage(off)]
 fn loser_init_job() {
     #[cfg(not(feature = "cpu_data_non_priv"))]
     {
@@ -186,7 +180,6 @@ fn loser_init_job() {
     feature = "max_cores_2"
 ))]
 #[link_section = ".init.rust"]
-#[coverage(off)]
 #[inline(always)]
 fn losers_init() {
     #[cfg(feature = "multicores_init")]
@@ -221,7 +214,6 @@ extern "C" fn __pre_init() {}
 //after we are done with got, pic can work
 #[inline(always)]
 #[link_section = ".init.rust"]
-#[coverage(off)]
 pub(crate) fn vfw_relocation() {
     __pre_init();
     #[cfg(any(
